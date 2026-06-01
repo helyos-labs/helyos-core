@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1780324170403,
+  "lastUpdate": 1780348152891,
   "repoUrl": "https://github.com/nexa-net/nexa-core",
   "entries": {
     "Benchmark": [
@@ -358,6 +358,66 @@ window.BENCHMARK_DATA = {
           {
             "name": "scheduler_binpack/20",
             "value": 1224,
+            "range": "± 2",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "nassime.abdiou@icloud.com",
+            "name": "Nassime Abdiou",
+            "username": "na2sime"
+          },
+          "committer": {
+            "email": "nassime.abdiou@icloud.com",
+            "name": "Nassime Abdiou",
+            "username": "na2sime"
+          },
+          "distinct": true,
+          "id": "0eca8bdf2f328911747e8fab3557b56bcc5ff9c0",
+          "message": "ci: run all tests (not just --lib), add macOS CI",
+          "timestamp": "2026-06-01T23:05:19+02:00",
+          "tree_id": "1b4f467106348ba48f2b830ac21158dccb820175",
+          "url": "https://github.com/nexa-net/nexa-core/commit/0eca8bdf2f328911747e8fab3557b56bcc5ff9c0"
+        },
+        "date": 1780348152033,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse_minimal_spec",
+            "value": 3420,
+            "range": "± 65",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse_full_spec",
+            "value": 23327,
+            "range": "± 87",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_spread/5",
+            "value": 240,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_spread/20",
+            "value": 953,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_binpack/5",
+            "value": 240,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_binpack/20",
+            "value": 949,
             "range": "± 2",
             "unit": "ns/iter"
           }
