@@ -1,6 +1,7 @@
 use std::collections::HashMap as StdHashMap;
 use std::sync::Arc;
 
+use chrono::{DateTime, Utc};
 use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
 
@@ -399,6 +400,7 @@ pub struct Orchestrator {
     health_tracker: HealthTracker,
     projects: StdHashMap<String, Project>,
     deployments: StdHashMap<Uuid, Deployment>,
+    deployment_index: StdHashMap<(String, String), Uuid>,
     pods: StdHashMap<Uuid, Pod>,
     restart_states: StdHashMap<Uuid, RestartState>,
     dns: Option<Arc<dyn DnsProvider>>,
@@ -434,6 +436,7 @@ impl Orchestrator {
                 health_tracker: HealthTracker::new(),
                 projects: StdHashMap::new(),
                 deployments: StdHashMap::new(),
+                deployment_index: StdHashMap::new(),
                 pods: StdHashMap::new(),
                 restart_states: StdHashMap::new(),
                 dns,
@@ -605,6 +608,8 @@ impl Orchestrator {
         match store.list_deployments(None).await {
             Ok(deployments) => {
                 for d in deployments {
+                    self.deployment_index
+                        .insert((d.project().to_string(), d.name().to_string()), d.id);
                     self.deployments.insert(d.id, d);
                 }
                 tracing::info!(
@@ -745,6 +750,10 @@ impl Orchestrator {
 
         let deployment = Deployment::from_spec(spec);
         let id = deployment.id;
+        self.deployment_index.insert(
+            (deployment.project().to_string(), deployment.name().to_string()),
+            id,
+        );
         self.persist_insert_deployment(&deployment).await;
         self.deployments.insert(id, deployment);
         self.reconcile_deployment(id).await?;
@@ -830,6 +839,8 @@ impl Orchestrator {
         if let Some(store) = &self.state_store {
             let _ = store.delete_deployment(&id).await;
         }
+        self.deployment_index
+            .remove(&(project.to_string(), name.to_string()));
         self.deployments.remove(&id);
         if let Some(ref m) = self.metrics {
             m.record_deployment_op("remove");
@@ -888,11 +899,11 @@ impl Orchestrator {
         let network_name = format!("nexa-{}", spec.project);
         let _ = self.runtime.create_network(&network_name).await;
 
-        let mut current_pods: Vec<Uuid> = self
+        let mut current_pods: Vec<(Uuid, DateTime<Utc>)> = self
             .pods
             .values()
             .filter(|p| p.deployment_id == deployment_id)
-            .map(|p| p.id)
+            .map(|p| (p.id, p.created_at))
             .collect();
 
         let current_count = current_pods.len() as u32;
@@ -902,8 +913,8 @@ impl Orchestrator {
                 self.create_pod(deployment_id, &spec, i).await?;
             }
         } else if current_count > desired {
-            current_pods.sort();
-            for &pod_id in &current_pods[(desired as usize)..] {
+            current_pods.sort_by_key(|&(_, ts)| ts);
+            for &(pod_id, _) in &current_pods[(desired as usize)..] {
                 self.health_tracker.unregister(&pod_id);
                 if let Some(pod) = self.pods.get(&pod_id) {
                     if let Some(dns) = &self.dns {
@@ -1525,10 +1536,9 @@ impl Orchestrator {
     }
 
     fn find_deployment_id(&self, project: &str, name: &str) -> Option<Uuid> {
-        self.deployments
-            .values()
-            .find(|d| d.project() == project && d.name() == name)
-            .map(|d| d.id)
+        self.deployment_index
+            .get(&(project.to_string(), name.to_string()))
+            .copied()
     }
 
     // ---- Project lifecycle handlers ----
