@@ -153,17 +153,41 @@ impl WeightedScheduler {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SchedulerStrategy {
+    Spread,
+    Binpack,
+    Custom,
+}
+
+impl SchedulerStrategy {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Spread => "spread",
+            Self::Binpack => "binpack",
+            Self::Custom => "custom",
+        }
+    }
+}
+
+impl std::fmt::Display for SchedulerStrategy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SchedulerConfig {
-    pub strategy: String,
+    pub strategy: SchedulerStrategy,
     pub weights: SchedulerWeights,
 }
 
 impl SchedulerConfig {
     pub fn from_strategy(strategy: &str) -> Result<Self> {
-        let weights = match strategy {
-            "spread" => SchedulerWeights::spread(),
-            "binpack" => SchedulerWeights::binpack(),
+        let (strat, weights) = match strategy {
+            "spread" => (SchedulerStrategy::Spread, SchedulerWeights::spread()),
+            "binpack" => (SchedulerStrategy::Binpack, SchedulerWeights::binpack()),
             _ => {
                 return Err(NexaError::InvalidSpec(format!(
                     "unknown scheduler strategy: '{strategy}'. Valid: spread, binpack"
@@ -171,7 +195,7 @@ impl SchedulerConfig {
             }
         };
         Ok(Self {
-            strategy: strategy.to_string(),
+            strategy: strat,
             weights,
         })
     }
@@ -188,7 +212,7 @@ impl SchedulerConfig {
                 )));
             }
         }
-        self.strategy = "custom".to_string();
+        self.strategy = SchedulerStrategy::Custom;
         Ok(())
     }
 }
@@ -196,7 +220,7 @@ impl SchedulerConfig {
 impl Default for SchedulerConfig {
     fn default() -> Self {
         Self {
-            strategy: "spread".to_string(),
+            strategy: SchedulerStrategy::Spread,
             weights: SchedulerWeights::spread(),
         }
     }
@@ -598,14 +622,14 @@ mod tests {
     #[test]
     fn scheduler_config_from_strategy_spread() {
         let config = SchedulerConfig::from_strategy("spread").unwrap();
-        assert_eq!(config.strategy, "spread");
+        assert_eq!(config.strategy, SchedulerStrategy::Spread);
         assert_eq!(config.weights, SchedulerWeights::spread());
     }
 
     #[test]
     fn scheduler_config_from_strategy_binpack() {
         let config = SchedulerConfig::from_strategy("binpack").unwrap();
-        assert_eq!(config.strategy, "binpack");
+        assert_eq!(config.strategy, SchedulerStrategy::Binpack);
         assert_eq!(config.weights, SchedulerWeights::binpack());
     }
 
@@ -620,7 +644,7 @@ mod tests {
         let mut config = SchedulerConfig::from_strategy("spread").unwrap();
         config.set_weight("cpu", 0.5).unwrap();
         assert_eq!(config.weights.cpu, 0.5);
-        assert_eq!(config.strategy, "custom");
+        assert_eq!(config.strategy, SchedulerStrategy::Custom);
     }
 
     #[test]

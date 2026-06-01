@@ -8,7 +8,8 @@ use crate::domain::health::{HealthState, HealthTracker, PodHealthConfig};
 use crate::domain::models::*;
 use crate::domain::restart::{self, RestartState};
 use crate::domain::scheduler::{
-    NodeSnapshot, PodRequest, SchedulerConfig, SchedulerWeights, WeightedScheduler, parse_memory,
+    NodeSnapshot, PodRequest, SchedulerConfig, SchedulerStrategy, SchedulerWeights,
+    WeightedScheduler, parse_memory,
 };
 use crate::error::{NexaError, Result};
 use crate::ports::cluster::ClusterTransport;
@@ -394,7 +395,7 @@ pub struct Orchestrator {
     secret_store: Option<Arc<dyn SecretStore>>,
     transport: Option<Arc<dyn ClusterTransport>>,
     scheduler: WeightedScheduler,
-    scheduler_strategy: String,
+    scheduler_strategy: SchedulerStrategy,
     health_tracker: HealthTracker,
     projects: StdHashMap<String, Project>,
     deployments: StdHashMap<Uuid, Deployment>,
@@ -429,7 +430,7 @@ impl Orchestrator {
                 secret_store,
                 transport,
                 scheduler: WeightedScheduler::new(SchedulerWeights::default()),
-                scheduler_strategy: "spread".to_string(),
+                scheduler_strategy: SchedulerStrategy::Spread,
                 health_tracker: HealthTracker::new(),
                 projects: StdHashMap::new(),
                 deployments: StdHashMap::new(),
@@ -1059,7 +1060,7 @@ impl Orchestrator {
         let start = std::time::Instant::now();
         let result = self.scheduler.select_node(&pod_request, &snapshots).ok();
         if let Some(ref m) = self.metrics {
-            m.record_schedule_decision(&self.scheduler_strategy, start.elapsed().as_secs_f64());
+            m.record_schedule_decision(self.scheduler_strategy.as_str(), start.elapsed().as_secs_f64());
         }
         result
     }
@@ -3025,16 +3026,16 @@ mod tests {
 
     #[tokio::test]
     async fn scheduler_config_can_be_changed_at_runtime() {
-        use crate::domain::scheduler::SchedulerConfig;
+        use crate::domain::scheduler::{SchedulerConfig, SchedulerStrategy};
 
         let handle = spawn_test_orchestrator();
 
         let config = handle.get_scheduler_config().await;
-        assert_eq!(config.strategy, "spread");
+        assert_eq!(config.strategy, SchedulerStrategy::Spread);
 
         let binpack = SchedulerConfig::from_strategy("binpack").unwrap();
         let updated = handle.set_scheduler_config(binpack).await.unwrap();
-        assert_eq!(updated.strategy, "binpack");
+        assert_eq!(updated.strategy, SchedulerStrategy::Binpack);
 
         let config = handle.get_scheduler_config().await;
         assert_eq!(config.weights, SchedulerWeights::binpack());

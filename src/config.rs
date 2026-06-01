@@ -1,9 +1,13 @@
 use std::path::Path;
+use std::sync::LazyLock;
 
 use regex::Regex;
 
 use crate::domain::models::DeploymentSpec;
 use crate::error::{NexaError, Result};
+
+static DNS_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[a-z0-9][a-z0-9-]*$").unwrap());
+static MEM_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[0-9]+[kmgKMG]$").unwrap());
 
 pub fn parse_deployment_file(path: &Path) -> Result<DeploymentSpec> {
     let content = std::fs::read_to_string(path)?;
@@ -27,8 +31,7 @@ fn validate_dns_name(value: &str, field: &str) -> Result<()> {
             value.len()
         )));
     }
-    let dns_re = Regex::new(r"^[a-z0-9][a-z0-9-]*$").unwrap();
-    if !dns_re.is_match(value) {
+    if !DNS_RE.is_match(value) {
         return Err(NexaError::InvalidSpec(format!(
             "{field} must be DNS-safe: start with [a-z0-9], then [a-z0-9-] only (got '{value}')"
         )));
@@ -73,8 +76,7 @@ fn validate_resource_memory(memory: &str) -> Result<()> {
             "resources.memory is required when resources is specified".into(),
         ));
     }
-    let mem_re = Regex::new(r"^[0-9]+[kmgKMG]$").unwrap();
-    if !mem_re.is_match(memory) {
+    if !MEM_RE.is_match(memory) {
         return Err(NexaError::InvalidSpec(format!(
             "resources.memory must match format like '512m', '1g', '256k' (got '{memory}')"
         )));
