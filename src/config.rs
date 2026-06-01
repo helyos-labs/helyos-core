@@ -12,7 +12,7 @@ pub fn parse_deployment_file(path: &Path) -> Result<DeploymentSpec> {
 
 pub fn parse_deployment(yaml: &str) -> Result<DeploymentSpec> {
     let spec: DeploymentSpec =
-        serde_yaml::from_str(yaml).map_err(|e| NexaError::InvalidSpec(e.to_string()))?;
+        serde_yml::from_str(yaml).map_err(|e| NexaError::InvalidSpec(e.to_string()))?;
     validate_spec(&spec)?;
     Ok(spec)
 }
