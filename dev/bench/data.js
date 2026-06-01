@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1780322124204,
+  "lastUpdate": 1780324170403,
   "repoUrl": "https://github.com/nexa-net/nexa-core",
   "entries": {
     "Benchmark": [
@@ -298,6 +298,66 @@ window.BENCHMARK_DATA = {
           {
             "name": "scheduler_binpack/20",
             "value": 1234,
+            "range": "± 2",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "nassime.abdiou@icloud.com",
+            "name": "Nassime Abdiou",
+            "username": "na2sime"
+          },
+          "committer": {
+            "email": "nassime.abdiou@icloud.com",
+            "name": "Nassime Abdiou",
+            "username": "na2sime"
+          },
+          "distinct": true,
+          "id": "3930dce50e46902dbfd55eca3a51b1aed6ad07ea",
+          "message": "refactor: replace std Mutex/RwLock with parking_lot (no poison)\n\nparking_lot locks never poison, eliminating 47 .lock().unwrap() sites.",
+          "timestamp": "2026-06-01T16:02:05+02:00",
+          "tree_id": "35aee293be8f27bf5dfcc1cff142e546d23705c8",
+          "url": "https://github.com/nexa-net/nexa-core/commit/3930dce50e46902dbfd55eca3a51b1aed6ad07ea"
+        },
+        "date": 1780324169920,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse_minimal_spec",
+            "value": 30666,
+            "range": "± 1644",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse_full_spec",
+            "value": 72354,
+            "range": "± 366",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_spread/5",
+            "value": 311,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_spread/20",
+            "value": 1219,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_binpack/5",
+            "value": 314,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_binpack/20",
+            "value": 1224,
             "range": "± 2",
             "unit": "ns/iter"
           }
