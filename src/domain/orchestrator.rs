@@ -25,7 +25,7 @@ use crate::ports::runtime::{ContainerConfig, ContainerRuntime, LogStream};
 use crate::ports::secrets::SecretStore;
 use crate::ports::state::StateStore;
 
-pub(crate) enum Command {
+pub enum Command {
     Deploy {
         spec: DeploymentSpec,
         reply: oneshot::Sender<Result<Deployment>>,
