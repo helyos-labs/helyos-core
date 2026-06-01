@@ -1,5 +1,4 @@
 #![allow(clippy::new_without_default)]
-#![allow(clippy::too_many_arguments)]
 #![allow(clippy::large_enum_variant)]
 
 pub mod adapters;

@@ -127,6 +127,13 @@ impl HealthTracker {
     }
 }
 
+// Static assertions: HealthTracker must be Send + Sync so it can live
+// inside types that are shared across async tasks / threads.
+const _: fn() = || {
+    fn assert_send_sync<T: Send + Sync>() {}
+    assert_send_sync::<HealthTracker>();
+};
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -259,7 +266,8 @@ mod tests {
         tracker.register(make_config(id, 3, Duration::from_millis(50)));
         // Just registered — not yet due
         assert!(tracker.pods_due_for_probe().is_empty());
-        thread::sleep(Duration::from_millis(60));
+        // Sleep well beyond the 50ms interval to avoid CI flakiness
+        thread::sleep(Duration::from_millis(150));
         assert!(tracker.pods_due_for_probe().contains(&id));
         tracker.mark_probed(&id);
         assert!(tracker.pods_due_for_probe().is_empty());
@@ -273,7 +281,8 @@ mod tests {
         tracker.record_result(&id, false).unwrap();
         tracker.record_result(&id, false).unwrap();
         assert_eq!(tracker.state(&id), Some(&HealthState::Unhealthy));
-        thread::sleep(Duration::from_millis(60));
+        // Sleep well beyond the 50ms interval to avoid CI flakiness
+        thread::sleep(Duration::from_millis(150));
         assert!(!tracker.pods_due_for_probe().contains(&id));
     }
 

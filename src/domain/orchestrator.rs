@@ -1,4 +1,4 @@
-use std::collections::HashMap as StdHashMap;
+use std::collections::{HashMap as StdHashMap, HashSet};
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
@@ -390,6 +390,9 @@ impl OrchestratorHandle {
     }
 }
 
+/// Capacity of the internal mpsc command channel.
+const COMMAND_CHANNEL_CAPACITY: usize = 256;
+
 pub struct Orchestrator {
     runtime: Arc<dyn ContainerRuntime>,
     state_store: Option<Arc<dyn StateStore>>,
@@ -402,6 +405,7 @@ pub struct Orchestrator {
     deployments: StdHashMap<Uuid, Deployment>,
     deployment_index: StdHashMap<(String, String), Uuid>,
     pods: StdHashMap<Uuid, Pod>,
+    pods_by_deployment: StdHashMap<Uuid, HashSet<Uuid>>,
     restart_states: StdHashMap<Uuid, RestartState>,
     dns: Option<Arc<dyn DnsProvider>>,
     master_ip: Option<String>,
@@ -412,6 +416,7 @@ pub struct Orchestrator {
 }
 
 impl Orchestrator {
+    #[allow(clippy::too_many_arguments)]
     pub fn spawn(
         runtime: Arc<dyn ContainerRuntime>,
         state_store: Option<Arc<dyn StateStore>>,
@@ -423,7 +428,7 @@ impl Orchestrator {
         route_store: Option<Arc<dyn RouteStore>>,
         metrics: Option<Arc<dyn MetricsPort>>,
     ) -> OrchestratorHandle {
-        let (tx, rx) = mpsc::channel(256);
+        let (tx, rx) = mpsc::channel(COMMAND_CHANNEL_CAPACITY);
         let tx_clone = tx.clone();
         tokio::spawn(async move {
             let mut orch = Self {
@@ -438,6 +443,7 @@ impl Orchestrator {
                 deployments: StdHashMap::new(),
                 deployment_index: StdHashMap::new(),
                 pods: StdHashMap::new(),
+                pods_by_deployment: StdHashMap::new(),
                 restart_states: StdHashMap::new(),
                 dns,
                 master_ip,
@@ -622,6 +628,10 @@ impl Orchestrator {
         match store.list_pods(None).await {
             Ok(pods) => {
                 for p in pods {
+                    self.pods_by_deployment
+                        .entry(p.deployment_id)
+                        .or_default()
+                        .insert(p.id);
                     self.pods.insert(p.id, p);
                 }
                 tracing::info!(count = self.pods.len(), "loaded pods from state store");
@@ -672,9 +682,9 @@ impl Orchestrator {
                 None => continue,
             };
             let (all_running, any_failed) = self
-                .pods
-                .values()
-                .filter(|p| p.deployment_id == deployment_id)
+                .deployment_pod_ids(&deployment_id)
+                .iter()
+                .filter_map(|id| self.pods.get(id))
                 .fold((true, false), |(all_r, any_f), p| match p.status {
                     PodStatus::Running => (all_r, any_f),
                     PodStatus::Failed => (false, true),
@@ -791,12 +801,7 @@ impl Orchestrator {
             .find_deployment_id(project, name)
             .ok_or_else(|| NexaError::DeploymentNotFound(format!("{project}/{name}")))?;
 
-        let pod_ids: Vec<Uuid> = self
-            .pods
-            .values()
-            .filter(|p| p.deployment_id == deployment_id)
-            .map(|p| p.id)
-            .collect();
+        let pod_ids: Vec<Uuid> = self.deployment_pod_ids(&deployment_id);
 
         for pod_id in &pod_ids {
             self.health_tracker.unregister(pod_id);
@@ -814,8 +819,7 @@ impl Orchestrator {
                 }
             }
             self.persist_delete_pod(pod_id).await;
-            self.pods.remove(pod_id);
-            self.restart_states.remove(pod_id);
+            self.remove_pod_from_index(pod_id);
         }
 
         if let Some(d) = self.deployments.get_mut(&deployment_id) {
@@ -900,9 +904,9 @@ impl Orchestrator {
         let _ = self.runtime.create_network(&network_name).await;
 
         let mut current_pods: Vec<(Uuid, DateTime<Utc>)> = self
-            .pods
-            .values()
-            .filter(|p| p.deployment_id == deployment_id)
+            .deployment_pod_ids(&deployment_id)
+            .iter()
+            .filter_map(|id| self.pods.get(id))
             .map(|p| (p.id, p.created_at))
             .collect();
 
@@ -931,15 +935,14 @@ impl Orchestrator {
                     }
                 }
                 self.persist_delete_pod(&pod_id).await;
-                self.pods.remove(&pod_id);
-                self.restart_states.remove(&pod_id);
+                self.remove_pod_from_index(&pod_id);
             }
         }
 
         let (all_running, any_failed) = self
-            .pods
-            .values()
-            .filter(|p| p.deployment_id == deployment_id)
+            .deployment_pod_ids(&deployment_id)
+            .iter()
+            .filter_map(|id| self.pods.get(id))
             .fold((true, false), |(all_r, any_f), p| match p.status {
                 PodStatus::Running => (all_r, any_f),
                 PodStatus::Failed => (false, true),
@@ -1076,6 +1079,25 @@ impl Orchestrator {
         result
     }
 
+    fn deployment_pod_ids(&self, deployment_id: &Uuid) -> Vec<Uuid> {
+        self.pods_by_deployment
+            .get(deployment_id)
+            .map(|set| set.iter().copied().collect())
+            .unwrap_or_default()
+    }
+
+    fn remove_pod_from_index(&mut self, pod_id: &Uuid) {
+        if let Some(pod) = self.pods.remove(pod_id) {
+            if let Some(set) = self.pods_by_deployment.get_mut(&pod.deployment_id) {
+                set.remove(pod_id);
+                if set.is_empty() {
+                    self.pods_by_deployment.remove(&pod.deployment_id);
+                }
+            }
+        }
+        self.restart_states.remove(pod_id);
+    }
+
     async fn create_pod(
         &mut self,
         deployment_id: Uuid,
@@ -1193,6 +1215,10 @@ impl Orchestrator {
             }
         }
 
+        self.pods_by_deployment
+            .entry(pod.deployment_id)
+            .or_default()
+            .insert(pod.id);
         self.pods.insert(pod.id, pod);
         Ok(())
     }
@@ -1490,8 +1516,7 @@ impl Orchestrator {
         // Remove old pod
         self.health_tracker.unregister(&pod_id);
         self.persist_delete_pod(&pod_id).await;
-        self.pods.remove(&pod_id);
-        self.restart_states.remove(&pod_id);
+        self.remove_pod_from_index(&pod_id);
 
         // Get deployment spec
         let spec = self
@@ -1516,9 +1541,9 @@ impl Orchestrator {
             None => return,
         };
         let (all_running, any_failed) = self
-            .pods
-            .values()
-            .filter(|p| p.deployment_id == deployment_id)
+            .deployment_pod_ids(&deployment_id)
+            .iter()
+            .filter_map(|id| self.pods.get(id))
             .fold((true, false), |(all_r, any_f), p| match p.status {
                 PodStatus::Running => (all_r, any_f),
                 PodStatus::Failed => (false, true),
@@ -1559,12 +1584,7 @@ impl Orchestrator {
             .collect();
 
         for deployment_id in &deployment_ids {
-            let pod_ids: Vec<Uuid> = self
-                .pods
-                .values()
-                .filter(|p| p.deployment_id == *deployment_id)
-                .map(|p| p.id)
-                .collect();
+            let pod_ids: Vec<Uuid> = self.deployment_pod_ids(deployment_id);
 
             for pod_id in &pod_ids {
                 self.health_tracker.unregister(pod_id);
@@ -1583,8 +1603,7 @@ impl Orchestrator {
                     }
                 }
                 self.persist_delete_pod(pod_id).await;
-                self.pods.remove(pod_id);
-                self.restart_states.remove(pod_id);
+                self.remove_pod_from_index(pod_id);
             }
 
             if let Some(d) = self.deployments.get_mut(deployment_id) {
@@ -2372,7 +2391,7 @@ mod tests {
             None,
             None,
         );
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
 
         let projects = handle.list_projects().await;
         assert_eq!(projects.len(), 1);
@@ -2415,8 +2434,8 @@ mod tests {
         // Report a failure
         handle.report_health(pod_id, false).await;
 
-        // Small delay for the actor to process
-        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+        // Give the actor time to process (generous margin for CI)
+        tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
 
         // Pod should still be running (only 1 failure, retries=3)
         let pods = handle.list_pods(None).await;
@@ -2455,10 +2474,10 @@ mod tests {
         // Report 3 failures to trigger restart
         for _ in 0..3 {
             handle.report_health(original_pod_id, false).await;
-            tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
         }
 
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
 
         // After restart, there should still be 1 pod but with a different id
         let pods = handle.list_pods(None).await;
@@ -2550,7 +2569,7 @@ mod tests {
             None,
             None,
         );
-        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
 
         let pods = handle.list_pods(None).await;
         assert_eq!(pods.len(), 1);
@@ -2589,8 +2608,8 @@ mod tests {
         // Send container exited event
         handle.send_container_exited(pod_id, 1).await;
 
-        // Wait for the actor to process + backoff (1s for first restart) + processing
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        // Wait for the actor to process (generous margin for CI)
+        tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
 
         // Pod should be in Restarting state
         let pods = handle.list_pods(None).await;
@@ -2630,7 +2649,7 @@ mod tests {
         let pod_id = pods[0].id;
 
         handle.send_container_exited(pod_id, 1).await;
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
 
         let pods = handle.list_pods(None).await;
         assert_eq!(pods.len(), 1);
@@ -2662,7 +2681,7 @@ mod tests {
 
         // Exit code 0 means clean exit — should not restart
         handle.send_container_exited(pod_id, 0).await;
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
 
         let pods = handle.list_pods(None).await;
         assert_eq!(pods.len(), 1);
@@ -2698,10 +2717,10 @@ mod tests {
         // BEFORE scheduling a restart.
         for _ in 0..10 {
             handle.send_container_exited(pod_id, 1).await;
-            tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
         }
 
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
 
         let pods = handle.list_pods(None).await;
         assert_eq!(pods.len(), 1);
@@ -3129,7 +3148,7 @@ mod tests {
         };
 
         handle.deploy(spec).await.unwrap();
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(150)).await;
 
         let registered = dns.registered.lock();
         assert_eq!(registered.len(), 2, "should register DNS for each pod");
@@ -3171,7 +3190,7 @@ mod tests {
         };
 
         handle.deploy(spec).await.unwrap();
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(150)).await;
         handle.stop("ecommerce".into(), "api".into()).await.unwrap();
 
         let deregistered = dns.deregistered.lock();

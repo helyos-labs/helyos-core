@@ -4,11 +4,12 @@ use parking_lot::Mutex;
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use crate::ports::state::StateStore;
+use crate::ports::state::{StateStore, STATE_SCHEMA_VERSION};
 use crate::domain::models::*;
 use crate::error::{NexaError, Result};
 
 pub struct InMemoryStore {
+    schema_version: u32,
     projects: Mutex<HashMap<String, Project>>,
     deployments: Mutex<HashMap<Uuid, Deployment>>,
     pods: Mutex<HashMap<Uuid, Pod>>,
@@ -19,12 +20,18 @@ pub struct InMemoryStore {
 impl InMemoryStore {
     pub fn new() -> Self {
         Self {
+            schema_version: STATE_SCHEMA_VERSION,
             projects: Mutex::new(HashMap::new()),
             deployments: Mutex::new(HashMap::new()),
             pods: Mutex::new(HashMap::new()),
             nodes: Mutex::new(HashMap::new()),
             cluster_config: Mutex::new(HashMap::new()),
         }
+    }
+
+    /// Returns the schema version this store was created with.
+    pub fn schema_version(&self) -> u32 {
+        self.schema_version
     }
 }
 

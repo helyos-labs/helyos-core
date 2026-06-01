@@ -1,8 +1,9 @@
 name: Benchmarks
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly on Monday at 06:00 UTC
 
 permissions:
   contents: write

@@ -4,6 +4,15 @@ use uuid::Uuid;
 use crate::domain::models::{Deployment, Node, Pod, Project, ProjectStatus};
 use crate::error::Result;
 
+/// Schema version for the persisted state format.
+///
+/// Bump this constant whenever the on-disk/on-wire representation of
+/// persisted entities (Project, Deployment, Pod, Node, cluster config)
+/// changes in a backward-incompatible way. Implementations of
+/// [`StateStore`] should store and check this version so that stale
+/// data can be detected and migrated.
+pub const STATE_SCHEMA_VERSION: u32 = 1;
+
 #[async_trait]
 pub trait StateStore: Send + Sync {
     async fn insert_project(&self, project: &Project) -> Result<()>;
