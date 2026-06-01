@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1780348152891,
+  "lastUpdate": 1780348244484,
   "repoUrl": "https://github.com/nexa-net/nexa-core",
   "entries": {
     "Benchmark": [
@@ -418,6 +418,66 @@ window.BENCHMARK_DATA = {
           {
             "name": "scheduler_binpack/20",
             "value": 949,
+            "range": "± 2",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "nassime.abdiou@icloud.com",
+            "name": "Nassime Abdiou",
+            "username": "na2sime"
+          },
+          "committer": {
+            "email": "nassime.abdiou@icloud.com",
+            "name": "Nassime Abdiou",
+            "username": "na2sime"
+          },
+          "distinct": true,
+          "id": "234faaf8121ac80d73d705336ced797bb5e5892d",
+          "message": "fix: restore Command enum visibility for external consumers",
+          "timestamp": "2026-06-01T23:08:55+02:00",
+          "tree_id": "e0a1d62d05a8460aa809a3334eb8f0938e3c4bfc",
+          "url": "https://github.com/nexa-net/nexa-core/commit/234faaf8121ac80d73d705336ced797bb5e5892d"
+        },
+        "date": 1780348244165,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse_minimal_spec",
+            "value": 3617,
+            "range": "± 32",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse_full_spec",
+            "value": 26095,
+            "range": "± 130",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_spread/5",
+            "value": 310,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_spread/20",
+            "value": 1218,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_binpack/5",
+            "value": 313,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_binpack/20",
+            "value": 1230,
             "range": "± 2",
             "unit": "ns/iter"
           }
