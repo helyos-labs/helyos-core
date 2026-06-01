@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::RwLock;
+use parking_lot::RwLock;
 
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
@@ -27,7 +27,7 @@ impl InMemoryRouteStore {
 #[async_trait]
 impl RouteStore for InMemoryRouteStore {
     async fn insert_route(&self, route: &Route) -> Result<()> {
-        let mut routes = self.routes.write().unwrap();
+        let mut routes = self.routes.write();
         if routes.contains_key(&route.domain) {
             return Err(NexaError::RouteAlreadyExists(route.domain.clone()));
         }
@@ -36,12 +36,12 @@ impl RouteStore for InMemoryRouteStore {
     }
 
     async fn get_route(&self, domain: &str) -> Result<Option<Route>> {
-        let routes = self.routes.read().unwrap();
+        let routes = self.routes.read();
         Ok(routes.get(domain).cloned())
     }
 
     async fn list_routes(&self, project: Option<&str>) -> Result<Vec<Route>> {
-        let routes = self.routes.read().unwrap();
+        let routes = self.routes.read();
         Ok(routes
             .values()
             .filter(|r| project.is_none_or(|p| r.project == p))
@@ -50,23 +50,23 @@ impl RouteStore for InMemoryRouteStore {
     }
 
     async fn delete_route(&self, domain: &str) -> Result<bool> {
-        let mut routes = self.routes.write().unwrap();
+        let mut routes = self.routes.write();
         Ok(routes.remove(domain).is_some())
     }
 
     async fn upsert_certificate(&self, cert: &Certificate) -> Result<()> {
-        let mut certs = self.certificates.write().unwrap();
+        let mut certs = self.certificates.write();
         certs.insert(cert.domain.clone(), cert.clone());
         Ok(())
     }
 
     async fn get_certificate(&self, domain: &str) -> Result<Option<Certificate>> {
-        let certs = self.certificates.read().unwrap();
+        let certs = self.certificates.read();
         Ok(certs.get(domain).cloned())
     }
 
     async fn list_expiring_certificates(&self, within_days: i64) -> Result<Vec<Certificate>> {
-        let certs = self.certificates.read().unwrap();
+        let certs = self.certificates.read();
         let threshold = Utc::now() + Duration::days(within_days);
         Ok(certs
             .values()
@@ -76,12 +76,12 @@ impl RouteStore for InMemoryRouteStore {
     }
 
     async fn delete_certificate(&self, domain: &str) -> Result<bool> {
-        let mut certs = self.certificates.write().unwrap();
+        let mut certs = self.certificates.write();
         Ok(certs.remove(domain).is_some())
     }
 
     async fn allocate_subnet(&self, alloc: &SubnetAllocation) -> Result<()> {
-        let mut subnets = self.subnets.write().unwrap();
+        let mut subnets = self.subnets.write();
         if subnets
             .iter()
             .any(|s| s.node_id == alloc.node_id && s.project == alloc.project)
@@ -106,7 +106,7 @@ impl RouteStore for InMemoryRouteStore {
         node_id: &str,
         project: &str,
     ) -> Result<Option<SubnetAllocation>> {
-        let subnets = self.subnets.read().unwrap();
+        let subnets = self.subnets.read();
         Ok(subnets
             .iter()
             .find(|s| s.node_id == node_id && s.project == project)
@@ -114,11 +114,11 @@ impl RouteStore for InMemoryRouteStore {
     }
 
     async fn list_subnets(&self) -> Result<Vec<SubnetAllocation>> {
-        Ok(self.subnets.read().unwrap().clone())
+        Ok(self.subnets.read().clone())
     }
 
     async fn deallocate_subnet(&self, node_id: &str, project: &str) -> Result<bool> {
-        let mut subnets = self.subnets.write().unwrap();
+        let mut subnets = self.subnets.write();
         let len = subnets.len();
         subnets.retain(|s| !(s.node_id == node_id && s.project == project));
         Ok(subnets.len() < len)

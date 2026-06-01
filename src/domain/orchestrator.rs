@@ -1824,7 +1824,7 @@ mod tests {
     use crate::ports::state::StateStore;
     use crate::ports::state_memory::InMemoryStore;
     use std::collections::HashMap;
-    use std::sync::Mutex as StdMutex;
+    use parking_lot::Mutex as StdMutex;
 
     struct MockRuntime;
 
@@ -1903,7 +1903,6 @@ mod tests {
             let id = format!("mock-{}", config.name);
             self.container_states
                 .lock()
-                .unwrap()
                 .insert(id.clone(), ContainerState::Running);
             Ok(id)
         }
@@ -1917,7 +1916,7 @@ mod tests {
             Ok(())
         }
         async fn inspect_container(&self, id: &str) -> Result<ContainerInfo> {
-            let states = self.container_states.lock().unwrap();
+            let states = self.container_states.lock();
             match states.get(id) {
                 Some(state) => Ok(ContainerInfo {
                     id: id.into(),
@@ -2118,7 +2117,7 @@ mod tests {
 
     #[tokio::test]
     async fn deploy_maps_volume_spec_to_volume_binding() {
-        use std::sync::Mutex;
+        use parking_lot::Mutex;
 
         struct CapturingRuntime {
             configs: Mutex<Vec<ContainerConfig>>,
@@ -2133,7 +2132,7 @@ mod tests {
                 Ok(())
             }
             async fn create_container(&self, config: &ContainerConfig) -> Result<String> {
-                self.configs.lock().unwrap().push(config.clone());
+                self.configs.lock().push(config.clone());
                 Ok(format!("mock-{}", config.name))
             }
             async fn start_container(&self, _id: &str) -> Result<()> {
@@ -2218,7 +2217,7 @@ mod tests {
 
         handle.deploy(spec).await.unwrap();
 
-        let configs = runtime.configs.lock().unwrap();
+        let configs = runtime.configs.lock();
         assert_eq!(configs.len(), 1);
 
         let vols = &configs[0].volumes;
@@ -2859,7 +2858,7 @@ mod tests {
     async fn deploy_injects_secrets_into_env() {
         use crate::ports::secrets::SecretStore;
         use crate::ports::secrets_memory::PlaintextSecretStore;
-        use std::sync::Mutex;
+        use parking_lot::Mutex;
 
         struct CapturingRuntime {
             configs: Mutex<Vec<ContainerConfig>>,
@@ -2874,7 +2873,7 @@ mod tests {
                 Ok(())
             }
             async fn create_container(&self, config: &ContainerConfig) -> Result<String> {
-                self.configs.lock().unwrap().push(config.clone());
+                self.configs.lock().push(config.clone());
                 Ok(format!("mock-{}", config.name))
             }
             async fn start_container(&self, _id: &str) -> Result<()> {
@@ -2955,7 +2954,7 @@ mod tests {
 
         handle.deploy(spec).await.unwrap();
 
-        let configs = capturing.configs.lock().unwrap();
+        let configs = capturing.configs.lock();
         assert_eq!(configs.len(), 1);
         assert_eq!(configs[0].env.get("DB_PASSWORD").unwrap(), "s3cret");
         assert_eq!(configs[0].env.get("APP_NAME").unwrap(), "test");
@@ -3067,7 +3066,6 @@ mod tests {
         ) -> Result<()> {
             self.registered
                 .lock()
-                .unwrap()
                 .push((project.to_string(), deployment.to_string(), ip));
             Ok(())
         }
@@ -3077,7 +3075,7 @@ mod tests {
             deployment: &str,
             ip: std::net::IpAddr,
         ) -> Result<()> {
-            self.deregistered.lock().unwrap().push((
+            self.deregistered.lock().push((
                 project.to_string(),
                 deployment.to_string(),
                 ip,
@@ -3122,7 +3120,7 @@ mod tests {
         handle.deploy(spec).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-        let registered = dns.registered.lock().unwrap();
+        let registered = dns.registered.lock();
         assert_eq!(registered.len(), 2, "should register DNS for each pod");
         assert!(
             registered
@@ -3165,7 +3163,7 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
         handle.stop("ecommerce".into(), "api".into()).await.unwrap();
 
-        let deregistered = dns.deregistered.lock().unwrap();
+        let deregistered = dns.deregistered.lock();
         assert_eq!(deregistered.len(), 1, "should deregister DNS on stop");
         assert_eq!(deregistered[0].0, "ecommerce");
         assert_eq!(deregistered[0].1, "api");

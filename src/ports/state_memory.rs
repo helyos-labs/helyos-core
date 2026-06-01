@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Mutex;
+use parking_lot::Mutex;
 
 use async_trait::async_trait;
 use uuid::Uuid;
@@ -31,7 +31,7 @@ impl InMemoryStore {
 #[async_trait]
 impl StateStore for InMemoryStore {
     async fn insert_project(&self, project: &Project) -> Result<()> {
-        let mut map = self.projects.lock().unwrap();
+        let mut map = self.projects.lock();
         if map.contains_key(&project.name) {
             return Err(NexaError::InvalidSpec(format!(
                 "project '{}' already exists",
@@ -43,17 +43,17 @@ impl StateStore for InMemoryStore {
     }
 
     async fn get_project(&self, name: &str) -> Result<Option<Project>> {
-        let map = self.projects.lock().unwrap();
+        let map = self.projects.lock();
         Ok(map.get(name).cloned())
     }
 
     async fn list_projects(&self) -> Result<Vec<Project>> {
-        let map = self.projects.lock().unwrap();
+        let map = self.projects.lock();
         Ok(map.values().cloned().collect())
     }
 
     async fn update_project_status(&self, name: &str, status: ProjectStatus) -> Result<()> {
-        let mut map = self.projects.lock().unwrap();
+        let mut map = self.projects.lock();
         match map.get_mut(name) {
             Some(p) => {
                 p.status = status;
@@ -64,19 +64,19 @@ impl StateStore for InMemoryStore {
     }
 
     async fn delete_project(&self, name: &str) -> Result<()> {
-        let mut map = self.projects.lock().unwrap();
+        let mut map = self.projects.lock();
         map.remove(name);
         Ok(())
     }
 
     async fn insert_deployment(&self, deployment: &Deployment) -> Result<()> {
-        let mut map = self.deployments.lock().unwrap();
+        let mut map = self.deployments.lock();
         map.insert(deployment.id, deployment.clone());
         Ok(())
     }
 
     async fn get_deployment(&self, project: &str, name: &str) -> Result<Option<Deployment>> {
-        let map = self.deployments.lock().unwrap();
+        let map = self.deployments.lock();
         let found = map
             .values()
             .find(|d| d.project() == project && d.name() == name)
@@ -85,7 +85,7 @@ impl StateStore for InMemoryStore {
     }
 
     async fn list_deployments(&self, project: Option<&str>) -> Result<Vec<Deployment>> {
-        let map = self.deployments.lock().unwrap();
+        let map = self.deployments.lock();
         let result = map
             .values()
             .filter(|d| match project {
@@ -98,25 +98,25 @@ impl StateStore for InMemoryStore {
     }
 
     async fn update_deployment(&self, deployment: &Deployment) -> Result<()> {
-        let mut map = self.deployments.lock().unwrap();
+        let mut map = self.deployments.lock();
         map.insert(deployment.id, deployment.clone());
         Ok(())
     }
 
     async fn delete_deployment(&self, id: &Uuid) -> Result<()> {
-        let mut map = self.deployments.lock().unwrap();
+        let mut map = self.deployments.lock();
         map.remove(id);
         Ok(())
     }
 
     async fn insert_pod(&self, pod: &Pod) -> Result<()> {
-        let mut map = self.pods.lock().unwrap();
+        let mut map = self.pods.lock();
         map.insert(pod.id, pod.clone());
         Ok(())
     }
 
     async fn list_pods(&self, project: Option<&str>) -> Result<Vec<Pod>> {
-        let map = self.pods.lock().unwrap();
+        let map = self.pods.lock();
         let result = map
             .values()
             .filter(|p| match project {
@@ -129,19 +129,19 @@ impl StateStore for InMemoryStore {
     }
 
     async fn update_pod(&self, pod: &Pod) -> Result<()> {
-        let mut map = self.pods.lock().unwrap();
+        let mut map = self.pods.lock();
         map.insert(pod.id, pod.clone());
         Ok(())
     }
 
     async fn delete_pod(&self, id: &Uuid) -> Result<()> {
-        let mut map = self.pods.lock().unwrap();
+        let mut map = self.pods.lock();
         map.remove(id);
         Ok(())
     }
 
     async fn pods_by_deployment(&self, deployment_id: &Uuid) -> Result<Vec<Pod>> {
-        let map = self.pods.lock().unwrap();
+        let map = self.pods.lock();
         let result = map
             .values()
             .filter(|p| p.deployment_id == *deployment_id)
@@ -151,7 +151,7 @@ impl StateStore for InMemoryStore {
     }
 
     async fn insert_node(&self, node: &Node) -> Result<()> {
-        let mut map = self.nodes.lock().unwrap();
+        let mut map = self.nodes.lock();
         if map.values().any(|n| n.name == node.name) {
             return Err(NexaError::InvalidSpec(format!(
                 "node '{}' already exists",
@@ -163,22 +163,22 @@ impl StateStore for InMemoryStore {
     }
 
     async fn get_node(&self, id: &Uuid) -> Result<Option<Node>> {
-        let map = self.nodes.lock().unwrap();
+        let map = self.nodes.lock();
         Ok(map.get(id).cloned())
     }
 
     async fn get_node_by_name(&self, name: &str) -> Result<Option<Node>> {
-        let map = self.nodes.lock().unwrap();
+        let map = self.nodes.lock();
         Ok(map.values().find(|n| n.name == name).cloned())
     }
 
     async fn list_nodes(&self) -> Result<Vec<Node>> {
-        let map = self.nodes.lock().unwrap();
+        let map = self.nodes.lock();
         Ok(map.values().cloned().collect())
     }
 
     async fn update_node(&self, node: &Node) -> Result<()> {
-        let mut map = self.nodes.lock().unwrap();
+        let mut map = self.nodes.lock();
         if !map.contains_key(&node.id) {
             return Err(NexaError::NodeNotFound(node.id.to_string()));
         }
@@ -187,18 +187,18 @@ impl StateStore for InMemoryStore {
     }
 
     async fn delete_node(&self, id: &Uuid) -> Result<()> {
-        let mut map = self.nodes.lock().unwrap();
+        let mut map = self.nodes.lock();
         map.remove(id);
         Ok(())
     }
 
     async fn get_cluster_config(&self, key: &str) -> Result<Option<String>> {
-        let map = self.cluster_config.lock().unwrap();
+        let map = self.cluster_config.lock();
         Ok(map.get(key).cloned())
     }
 
     async fn set_cluster_config(&self, key: &str, value: &str) -> Result<()> {
-        let mut map = self.cluster_config.lock().unwrap();
+        let mut map = self.cluster_config.lock();
         map.insert(key.to_string(), value.to_string());
         Ok(())
     }

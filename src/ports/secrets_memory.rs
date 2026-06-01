@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Mutex;
+use parking_lot::Mutex;
 
 use async_trait::async_trait;
 
@@ -21,18 +21,18 @@ impl PlaintextSecretStore {
 #[async_trait]
 impl SecretStore for PlaintextSecretStore {
     async fn set(&self, project: &str, name: &str, value: &[u8]) -> Result<()> {
-        let mut map = self.data.lock().unwrap();
+        let mut map = self.data.lock();
         map.insert((project.to_string(), name.to_string()), value.to_vec());
         Ok(())
     }
 
     async fn get(&self, project: &str, name: &str) -> Result<Option<Vec<u8>>> {
-        let map = self.data.lock().unwrap();
+        let map = self.data.lock();
         Ok(map.get(&(project.to_string(), name.to_string())).cloned())
     }
 
     async fn list(&self, project: &str) -> Result<Vec<String>> {
-        let map = self.data.lock().unwrap();
+        let map = self.data.lock();
         let names: Vec<String> = map
             .keys()
             .filter(|(p, _)| p == project)
@@ -42,7 +42,7 @@ impl SecretStore for PlaintextSecretStore {
     }
 
     async fn delete(&self, project: &str, name: &str) -> Result<()> {
-        let mut map = self.data.lock().unwrap();
+        let mut map = self.data.lock();
         map.remove(&(project.to_string(), name.to_string()));
         Ok(())
     }
