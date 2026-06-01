@@ -25,7 +25,7 @@ use crate::ports::runtime::{ContainerConfig, ContainerRuntime, LogStream};
 use crate::ports::secrets::SecretStore;
 use crate::ports::state::StateStore;
 
-pub enum Command {
+pub(crate) enum Command {
     Deploy {
         spec: DeploymentSpec,
         reply: oneshot::Sender<Result<Deployment>>,
@@ -1833,7 +1833,7 @@ mod tests {
     use super::*;
     use crate::ports::runtime::*;
     use crate::ports::state::StateStore;
-    use crate::ports::state_memory::InMemoryStore;
+    use crate::adapters::state_memory::InMemoryStore;
     use std::collections::HashMap;
     use parking_lot::Mutex as StdMutex;
 
@@ -2868,7 +2868,7 @@ mod tests {
     #[tokio::test]
     async fn deploy_injects_secrets_into_env() {
         use crate::ports::secrets::SecretStore;
-        use crate::ports::secrets_memory::PlaintextSecretStore;
+        use crate::adapters::secrets_memory::PlaintextSecretStore;
         use parking_lot::Mutex;
 
         struct CapturingRuntime {
@@ -2974,7 +2974,7 @@ mod tests {
     #[tokio::test]
     async fn deploy_fails_on_missing_secret() {
         use crate::ports::secrets::SecretStore;
-        use crate::ports::secrets_memory::PlaintextSecretStore;
+        use crate::adapters::secrets_memory::PlaintextSecretStore;
 
         let secrets = Arc::new(PlaintextSecretStore::new());
         let handle = Orchestrator::spawn(
@@ -3237,7 +3237,7 @@ mod tests {
     }
 
     fn spawn_route_test_orchestrator() -> OrchestratorHandle {
-        use crate::ports::route_store_memory::InMemoryRouteStore;
+        use crate::adapters::route_store_memory::InMemoryRouteStore;
         let proxy: Arc<dyn ProxyBackendTrait> = Arc::new(NoopProxyBackend);
         let route_store: Arc<dyn RouteStore> = Arc::new(InMemoryRouteStore::new());
         Orchestrator::spawn(

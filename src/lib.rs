@@ -2,6 +2,7 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::large_enum_variant)]
 
+pub mod adapters;
 pub mod config;
 pub mod domain;
 pub mod duration;

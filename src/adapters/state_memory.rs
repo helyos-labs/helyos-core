@@ -4,7 +4,7 @@ use parking_lot::Mutex;
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use super::state::StateStore;
+use crate::ports::state::StateStore;
 use crate::domain::models::*;
 use crate::error::{NexaError, Result};
 

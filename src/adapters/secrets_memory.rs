@@ -3,7 +3,7 @@ use parking_lot::Mutex;
 
 use async_trait::async_trait;
 
-use super::secrets::SecretStore;
+use crate::ports::secrets::SecretStore;
 use crate::error::Result;
 
 pub struct PlaintextSecretStore {
