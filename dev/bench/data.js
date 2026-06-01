@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779655177921,
+  "lastUpdate": 1780322124204,
   "repoUrl": "https://github.com/nexa-net/nexa-core",
   "entries": {
     "Benchmark": [
@@ -239,6 +239,66 @@ window.BENCHMARK_DATA = {
             "name": "scheduler_binpack/20",
             "value": 1234,
             "range": "± 3",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "nassime.abdiou@icloud.com",
+            "name": "Nassime Abdiou",
+            "username": "na2sime"
+          },
+          "committer": {
+            "email": "nassime.abdiou@icloud.com",
+            "name": "Nassime Abdiou",
+            "username": "na2sime"
+          },
+          "distinct": true,
+          "id": "ec637f5998c180d516366fb01f922b73105dd3ba",
+          "message": "fix: persist create_project, reject TlsMode::Auto without ACME email\n\n- handle_create_project now persists to state store (was memory-only)\n- Reject TlsMode::Auto route requests when no ACME email is configured",
+          "timestamp": "2026-06-01T15:52:51+02:00",
+          "tree_id": "95ecfdc91946c5e2e916e8d2538ccbc34d77eee1",
+          "url": "https://github.com/nexa-net/nexa-core/commit/ec637f5998c180d516366fb01f922b73105dd3ba"
+        },
+        "date": 1780322123841,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse_minimal_spec",
+            "value": 30534,
+            "range": "± 151",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse_full_spec",
+            "value": 70361,
+            "range": "± 1438",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_spread/5",
+            "value": 312,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_spread/20",
+            "value": 1226,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_binpack/5",
+            "value": 316,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_binpack/20",
+            "value": 1234,
+            "range": "± 2",
             "unit": "ns/iter"
           }
         ]
