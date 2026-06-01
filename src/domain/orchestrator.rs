@@ -463,7 +463,7 @@ impl Orchestrator {
                     let _ = reply.send(self.handle_list_pods(project.as_deref()));
                 }
                 Command::CreateProject { name, reply } => {
-                    let _ = reply.send(self.handle_create_project(&name));
+                    let _ = reply.send(self.handle_create_project(&name).await);
                 }
                 Command::ListProjects { reply } => {
                     let _ = reply.send(self.handle_list_projects());
@@ -699,7 +699,7 @@ impl Orchestrator {
         }
     }
 
-    fn handle_create_project(&mut self, name: &str) -> Result<Project> {
+    async fn handle_create_project(&mut self, name: &str) -> Result<Project> {
         if self.projects.contains_key(name) {
             return Err(NexaError::InvalidSpec(format!(
                 "project '{name}' already exists"
@@ -707,6 +707,7 @@ impl Orchestrator {
         }
         let project = Project::new(name);
         self.projects.insert(name.to_string(), project.clone());
+        self.persist_insert_project(&project).await;
         Ok(project)
     }
 
@@ -1692,6 +1693,12 @@ impl Orchestrator {
         let tls_mode: TlsMode = tls_mode_str
             .parse()
             .map_err(|e: String| NexaError::InvalidSpec(format!("invalid TLS mode: {e}")))?;
+
+        if tls_mode == TlsMode::Auto {
+            return Err(NexaError::InvalidSpec(
+                "TLS mode 'auto' requires a non-empty ACME email, but none is configured".into(),
+            ));
+        }
 
         let route = Route::new(domain, project, deployment, tls_mode.clone());
 
@@ -3245,7 +3252,7 @@ mod tests {
                 "api.example.com".into(),
                 "ecommerce".into(),
                 "api".into(),
-                "auto".into(),
+                "none".into(),
             )
             .await
             .unwrap();
@@ -3253,7 +3260,26 @@ mod tests {
         let routes = handle.list_routes(None).await;
         assert_eq!(routes.len(), 1);
         assert_eq!(routes[0].domain, "api.example.com");
-        assert_eq!(routes[0].tls_mode, TlsMode::Auto);
+        assert_eq!(routes[0].tls_mode, TlsMode::None);
+    }
+
+    #[tokio::test]
+    async fn add_route_auto_tls_without_email_fails() {
+        let handle = spawn_route_test_orchestrator();
+        let result = handle
+            .add_route(
+                "api.example.com".into(),
+                "ecommerce".into(),
+                "api".into(),
+                "auto".into(),
+            )
+            .await;
+        assert!(result.is_err());
+        let err_msg = format!("{}", result.unwrap_err());
+        assert!(
+            err_msg.contains("ACME email"),
+            "expected ACME email error, got: {err_msg}"
+        );
     }
 
     #[tokio::test]
@@ -3298,7 +3324,7 @@ mod tests {
                 "b.example.com".into(),
                 "proj-b".into(),
                 "web".into(),
-                "auto".into(),
+                "none".into(),
             )
             .await
             .unwrap();
