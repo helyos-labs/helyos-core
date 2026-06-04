@@ -1,12 +1,12 @@
-use std::collections::HashMap;
 use parking_lot::RwLock;
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
 
-use crate::ports::route_store::RouteStore;
 use crate::domain::models::{Certificate, Route, SubnetAllocation};
 use crate::error::{NexaError, Result};
+use crate::ports::route_store::RouteStore;
 
 pub struct InMemoryRouteStore {
     routes: RwLock<HashMap<String, Route>>,

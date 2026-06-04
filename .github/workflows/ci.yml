@@ -15,9 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: rustsec/audit-check@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@cargo-audit
+      # Ignored advisories (no clean fix; YAML parser only handles trusted
+      # operator-authored config, not a remote attack surface):
+      #   RUSTSEC-2025-0067/0068 — serde_yml/libyml unsound + unmaintained.
+      #     Migration to serde_yaml_ng is tracked as a follow-up.
+      - run: cargo audit --ignore RUSTSEC-2025-0067 --ignore RUSTSEC-2025-0068
 
   check:
     name: Check

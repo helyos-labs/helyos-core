@@ -765,7 +765,10 @@ impl Orchestrator {
         let deployment = Deployment::from_spec(spec);
         let id = deployment.id;
         self.deployment_index.insert(
-            (deployment.project().to_string(), deployment.name().to_string()),
+            (
+                deployment.project().to_string(),
+                deployment.name().to_string(),
+            ),
             id,
         );
         self.persist_insert_deployment(&deployment).await;
@@ -1078,7 +1081,10 @@ impl Orchestrator {
         let start = std::time::Instant::now();
         let result = self.scheduler.select_node(&pod_request, &snapshots).ok();
         if let Some(ref m) = self.metrics {
-            m.record_schedule_decision(self.scheduler_strategy.as_str(), start.elapsed().as_secs_f64());
+            m.record_schedule_decision(
+                self.scheduler_strategy.as_str(),
+                start.elapsed().as_secs_f64(),
+            );
         }
         result
     }
@@ -1872,11 +1878,11 @@ impl Orchestrator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::adapters::state_memory::InMemoryStore;
     use crate::ports::runtime::*;
     use crate::ports::state::StateStore;
-    use crate::adapters::state_memory::InMemoryStore;
-    use std::collections::HashMap;
     use parking_lot::Mutex as StdMutex;
+    use std::collections::HashMap;
 
     struct MockRuntime;
 
@@ -2908,8 +2914,8 @@ mod tests {
 
     #[tokio::test]
     async fn deploy_injects_secrets_into_env() {
-        use crate::ports::secrets::SecretStore;
         use crate::adapters::secrets_memory::PlaintextSecretStore;
+        use crate::ports::secrets::SecretStore;
         use parking_lot::Mutex;
 
         struct CapturingRuntime {
@@ -3014,8 +3020,8 @@ mod tests {
 
     #[tokio::test]
     async fn deploy_fails_on_missing_secret() {
-        use crate::ports::secrets::SecretStore;
         use crate::adapters::secrets_memory::PlaintextSecretStore;
+        use crate::ports::secrets::SecretStore;
 
         let secrets = Arc::new(PlaintextSecretStore::new());
         let handle = Orchestrator::spawn(
@@ -3127,11 +3133,9 @@ mod tests {
             deployment: &str,
             ip: std::net::IpAddr,
         ) -> Result<()> {
-            self.deregistered.lock().push((
-                project.to_string(),
-                deployment.to_string(),
-                ip,
-            ));
+            self.deregistered
+                .lock()
+                .push((project.to_string(), deployment.to_string(), ip));
             Ok(())
         }
         async fn lookup(&self, _project: &str, _deployment: &str) -> Result<Vec<std::net::IpAddr>> {

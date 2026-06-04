@@ -1,12 +1,12 @@
-use std::collections::HashMap;
 use parking_lot::Mutex;
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use crate::ports::state::{StateStore, STATE_SCHEMA_VERSION};
 use crate::domain::models::*;
 use crate::error::{NexaError, Result};
+use crate::ports::state::{STATE_SCHEMA_VERSION, StateStore};
 
 pub struct InMemoryStore {
     schema_version: u32,
