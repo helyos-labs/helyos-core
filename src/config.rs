@@ -4,7 +4,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 
 use crate::domain::models::DeploymentSpec;
-use crate::error::{NexaError, Result};
+use crate::error::{HelyosError, Result};
 
 static DNS_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[a-z0-9][a-z0-9-]*$").unwrap());
 static MEM_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[0-9]+[kmgKMG]$").unwrap());
@@ -16,23 +16,23 @@ pub fn parse_deployment_file(path: &Path) -> Result<DeploymentSpec> {
 
 pub fn parse_deployment(yaml: &str) -> Result<DeploymentSpec> {
     let spec: DeploymentSpec =
-        serde_yaml_ng::from_str(yaml).map_err(|e| NexaError::InvalidSpec(e.to_string()))?;
+        serde_yaml_ng::from_str(yaml).map_err(|e| HelyosError::InvalidSpec(e.to_string()))?;
     validate_spec(&spec)?;
     Ok(spec)
 }
 
 fn validate_dns_name(value: &str, field: &str) -> Result<()> {
     if value.is_empty() {
-        return Err(NexaError::InvalidSpec(format!("{field} is required")));
+        return Err(HelyosError::InvalidSpec(format!("{field} is required")));
     }
     if value.len() > 63 {
-        return Err(NexaError::InvalidSpec(format!(
+        return Err(HelyosError::InvalidSpec(format!(
             "{field} must be at most 63 characters, got {}",
             value.len()
         )));
     }
     if !DNS_RE.is_match(value) {
-        return Err(NexaError::InvalidSpec(format!(
+        return Err(HelyosError::InvalidSpec(format!(
             "{field} must be DNS-safe: start with [a-z0-9], then [a-z0-9-] only (got '{value}')"
         )));
     }
@@ -51,15 +51,17 @@ impl DeploymentSpec {
         validate_dns_name(&self.deployment.name, "deployment name")?;
 
         if self.image.is_empty() {
-            return Err(NexaError::InvalidSpec("image is required".into()));
+            return Err(HelyosError::InvalidSpec("image is required".into()));
         }
         if self.replicas == 0 {
-            return Err(NexaError::InvalidSpec("replicas must be at least 1".into()));
+            return Err(HelyosError::InvalidSpec(
+                "replicas must be at least 1".into(),
+            ));
         }
 
         for &port in &self.ports {
             if port == 0 {
-                return Err(NexaError::InvalidSpec(
+                return Err(HelyosError::InvalidSpec(
                     "port must be between 1 and 65535, got 0".into(),
                 ));
             }
@@ -68,7 +70,7 @@ impl DeploymentSpec {
         if let Some(ref res) = self.resources {
             validate_resource_memory(&res.memory)?;
             if !res.cpu.is_finite() || res.cpu <= 0.0 {
-                return Err(NexaError::InvalidSpec(
+                return Err(HelyosError::InvalidSpec(
                     "resources.cpu must be greater than 0".into(),
                 ));
             }
@@ -84,12 +86,12 @@ fn validate_spec(spec: &DeploymentSpec) -> Result<()> {
 
 fn validate_resource_memory(memory: &str) -> Result<()> {
     if memory.is_empty() {
-        return Err(NexaError::InvalidSpec(
+        return Err(HelyosError::InvalidSpec(
             "resources.memory is required when resources is specified".into(),
         ));
     }
     if !MEM_RE.is_match(memory) {
-        return Err(NexaError::InvalidSpec(format!(
+        return Err(HelyosError::InvalidSpec(format!(
             "resources.memory must match format like '512m', '1g', '256k' (got '{memory}')"
         )));
     }

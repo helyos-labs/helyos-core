@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum NexaError {
+pub enum HelyosError {
     #[error("project not found: {0}")]
     ProjectNotFound(String),
 
@@ -78,4 +78,4 @@ pub enum NexaError {
     RuntimeNotAvailable(String),
 }
 
-pub type Result<T> = std::result::Result<T, NexaError>;
+pub type Result<T> = std::result::Result<T, HelyosError>;

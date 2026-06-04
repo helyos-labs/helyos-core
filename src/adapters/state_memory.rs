@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 use crate::domain::models::*;
-use crate::error::{NexaError, Result};
+use crate::error::{HelyosError, Result};
 use crate::ports::state::{STATE_SCHEMA_VERSION, StateStore};
 
 pub struct InMemoryStore {
@@ -40,7 +40,7 @@ impl StateStore for InMemoryStore {
     async fn insert_project(&self, project: &Project) -> Result<()> {
         let mut map = self.projects.lock();
         if map.contains_key(&project.name) {
-            return Err(NexaError::InvalidSpec(format!(
+            return Err(HelyosError::InvalidSpec(format!(
                 "project '{}' already exists",
                 project.name
             )));
@@ -66,7 +66,7 @@ impl StateStore for InMemoryStore {
                 p.status = status;
                 Ok(())
             }
-            None => Err(NexaError::ProjectNotFound(name.to_string())),
+            None => Err(HelyosError::ProjectNotFound(name.to_string())),
         }
     }
 
@@ -160,7 +160,7 @@ impl StateStore for InMemoryStore {
     async fn insert_node(&self, node: &Node) -> Result<()> {
         let mut map = self.nodes.lock();
         if map.values().any(|n| n.name == node.name) {
-            return Err(NexaError::InvalidSpec(format!(
+            return Err(HelyosError::InvalidSpec(format!(
                 "node '{}' already exists",
                 node.name
             )));
@@ -187,7 +187,7 @@ impl StateStore for InMemoryStore {
     async fn update_node(&self, node: &Node) -> Result<()> {
         let mut map = self.nodes.lock();
         if !map.contains_key(&node.id) {
-            return Err(NexaError::NodeNotFound(node.id.to_string()));
+            return Err(HelyosError::NodeNotFound(node.id.to_string()));
         }
         map.insert(node.id, node.clone());
         Ok(())

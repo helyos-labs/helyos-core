@@ -14,7 +14,7 @@ pub trait MetricsPort: Send + Sync {
     /// `op` identifies the operation, e.g. "insert_pod", "update_deployment".
     ///
     /// Defaulted to a no-op so existing out-of-tree implementations (e.g. the
-    /// Prometheus adapter in nexad, which pins nexa-core via a git tag) remain
+    /// Prometheus adapter in helyosd, which pins helyos-core via a git tag) remain
     /// source-compatible without modification.
     fn record_persistence_error(&self, _op: &str) {}
     fn as_any(&self) -> &dyn Any;

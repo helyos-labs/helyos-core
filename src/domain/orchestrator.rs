@@ -12,7 +12,7 @@ use crate::domain::scheduler::{
     NodeSnapshot, PodRequest, SchedulerConfig, SchedulerStrategy, SchedulerWeights,
     WeightedScheduler, parse_memory,
 };
-use crate::error::{NexaError, Result};
+use crate::error::{HelyosError, Result};
 use crate::ports::cluster::ClusterTransport;
 use crate::ports::dns::DnsProvider;
 use crate::ports::metrics::MetricsPort;
@@ -143,9 +143,9 @@ impl OrchestratorHandle {
         self.tx
             .send(Command::Deploy { spec, reply })
             .await
-            .map_err(|_| NexaError::Runtime("orchestrator stopped".into()))?;
+            .map_err(|_| HelyosError::Runtime("orchestrator stopped".into()))?;
         rx.await
-            .map_err(|_| NexaError::Runtime("orchestrator dropped reply".into()))?
+            .map_err(|_| HelyosError::Runtime("orchestrator dropped reply".into()))?
     }
 
     pub async fn list_deployments(&self, project: Option<String>) -> Vec<Deployment> {
@@ -168,9 +168,9 @@ impl OrchestratorHandle {
         self.tx
             .send(Command::CreateProject { name, reply })
             .await
-            .map_err(|_| NexaError::Runtime("orchestrator stopped".into()))?;
+            .map_err(|_| HelyosError::Runtime("orchestrator stopped".into()))?;
         rx.await
-            .map_err(|_| NexaError::Runtime("orchestrator dropped reply".into()))?
+            .map_err(|_| HelyosError::Runtime("orchestrator dropped reply".into()))?
     }
 
     pub async fn list_projects(&self) -> Vec<Project> {
@@ -188,9 +188,9 @@ impl OrchestratorHandle {
                 reply,
             })
             .await
-            .map_err(|_| NexaError::Runtime("orchestrator stopped".into()))?;
+            .map_err(|_| HelyosError::Runtime("orchestrator stopped".into()))?;
         rx.await
-            .map_err(|_| NexaError::Runtime("orchestrator dropped reply".into()))?
+            .map_err(|_| HelyosError::Runtime("orchestrator dropped reply".into()))?
     }
 
     pub async fn remove_deployment(&self, project: String, name: String) -> Result<()> {
@@ -202,9 +202,9 @@ impl OrchestratorHandle {
                 reply,
             })
             .await
-            .map_err(|_| NexaError::Runtime("orchestrator stopped".into()))?;
+            .map_err(|_| HelyosError::Runtime("orchestrator stopped".into()))?;
         rx.await
-            .map_err(|_| NexaError::Runtime("orchestrator dropped reply".into()))?
+            .map_err(|_| HelyosError::Runtime("orchestrator dropped reply".into()))?
     }
 
     pub async fn scale(&self, project: String, name: String, replicas: u32) -> Result<Deployment> {
@@ -217,9 +217,9 @@ impl OrchestratorHandle {
                 reply,
             })
             .await
-            .map_err(|_| NexaError::Runtime("orchestrator stopped".into()))?;
+            .map_err(|_| HelyosError::Runtime("orchestrator stopped".into()))?;
         rx.await
-            .map_err(|_| NexaError::Runtime("orchestrator dropped reply".into()))?
+            .map_err(|_| HelyosError::Runtime("orchestrator dropped reply".into()))?
     }
 
     pub async fn pod_logs(
@@ -237,9 +237,9 @@ impl OrchestratorHandle {
                 reply,
             })
             .await
-            .map_err(|_| NexaError::Runtime("orchestrator stopped".into()))?;
+            .map_err(|_| HelyosError::Runtime("orchestrator stopped".into()))?;
         rx.await
-            .map_err(|_| NexaError::Runtime("orchestrator dropped reply".into()))?
+            .map_err(|_| HelyosError::Runtime("orchestrator dropped reply".into()))?
     }
 
     pub async fn report_health(&self, pod_id: Uuid, healthy: bool) {
@@ -267,9 +267,9 @@ impl OrchestratorHandle {
         self.tx
             .send(Command::SuspendProject { name, reply })
             .await
-            .map_err(|_| NexaError::Runtime("orchestrator stopped".into()))?;
+            .map_err(|_| HelyosError::Runtime("orchestrator stopped".into()))?;
         rx.await
-            .map_err(|_| NexaError::Runtime("orchestrator dropped reply".into()))?
+            .map_err(|_| HelyosError::Runtime("orchestrator dropped reply".into()))?
     }
 
     pub async fn resume_project(&self, name: String) -> Result<()> {
@@ -277,9 +277,9 @@ impl OrchestratorHandle {
         self.tx
             .send(Command::ResumeProject { name, reply })
             .await
-            .map_err(|_| NexaError::Runtime("orchestrator stopped".into()))?;
+            .map_err(|_| HelyosError::Runtime("orchestrator stopped".into()))?;
         rx.await
-            .map_err(|_| NexaError::Runtime("orchestrator dropped reply".into()))?
+            .map_err(|_| HelyosError::Runtime("orchestrator dropped reply".into()))?
     }
 
     pub async fn delete_project(&self, name: String) -> Result<()> {
@@ -287,9 +287,9 @@ impl OrchestratorHandle {
         self.tx
             .send(Command::DeleteProject { name, reply })
             .await
-            .map_err(|_| NexaError::Runtime("orchestrator stopped".into()))?;
+            .map_err(|_| HelyosError::Runtime("orchestrator stopped".into()))?;
         rx.await
-            .map_err(|_| NexaError::Runtime("orchestrator dropped reply".into()))?
+            .map_err(|_| HelyosError::Runtime("orchestrator dropped reply".into()))?
     }
 
     pub async fn list_secrets(&self, project: String) -> Result<Vec<String>> {
@@ -297,9 +297,9 @@ impl OrchestratorHandle {
         self.tx
             .send(Command::ListSecrets { project, reply })
             .await
-            .map_err(|_| NexaError::Runtime("orchestrator stopped".into()))?;
+            .map_err(|_| HelyosError::Runtime("orchestrator stopped".into()))?;
         rx.await
-            .map_err(|_| NexaError::Runtime("orchestrator dropped reply".into()))?
+            .map_err(|_| HelyosError::Runtime("orchestrator dropped reply".into()))?
     }
 
     pub async fn set_secret(&self, project: String, name: String, value: Vec<u8>) -> Result<()> {
@@ -312,9 +312,9 @@ impl OrchestratorHandle {
                 reply,
             })
             .await
-            .map_err(|_| NexaError::Runtime("orchestrator stopped".into()))?;
+            .map_err(|_| HelyosError::Runtime("orchestrator stopped".into()))?;
         rx.await
-            .map_err(|_| NexaError::Runtime("orchestrator dropped reply".into()))?
+            .map_err(|_| HelyosError::Runtime("orchestrator dropped reply".into()))?
     }
 
     pub async fn delete_secret(&self, project: String, name: String) -> Result<()> {
@@ -326,9 +326,9 @@ impl OrchestratorHandle {
                 reply,
             })
             .await
-            .map_err(|_| NexaError::Runtime("orchestrator stopped".into()))?;
+            .map_err(|_| HelyosError::Runtime("orchestrator stopped".into()))?;
         rx.await
-            .map_err(|_| NexaError::Runtime("orchestrator dropped reply".into()))?
+            .map_err(|_| HelyosError::Runtime("orchestrator dropped reply".into()))?
     }
 
     pub async fn get_scheduler_config(&self) -> SchedulerConfig {
@@ -342,9 +342,9 @@ impl OrchestratorHandle {
         self.tx
             .send(Command::SetSchedulerConfig { config, reply })
             .await
-            .map_err(|_| NexaError::Runtime("orchestrator stopped".into()))?;
+            .map_err(|_| HelyosError::Runtime("orchestrator stopped".into()))?;
         rx.await
-            .map_err(|_| NexaError::Runtime("orchestrator dropped reply".into()))?
+            .map_err(|_| HelyosError::Runtime("orchestrator dropped reply".into()))?
     }
 
     pub async fn add_route(
@@ -364,9 +364,9 @@ impl OrchestratorHandle {
                 reply,
             })
             .await
-            .map_err(|_| NexaError::Runtime("orchestrator stopped".into()))?;
+            .map_err(|_| HelyosError::Runtime("orchestrator stopped".into()))?;
         rx.await
-            .map_err(|_| NexaError::Runtime("orchestrator dropped reply".into()))?
+            .map_err(|_| HelyosError::Runtime("orchestrator dropped reply".into()))?
     }
 
     pub async fn remove_route(&self, domain: String) -> Result<()> {
@@ -374,9 +374,9 @@ impl OrchestratorHandle {
         self.tx
             .send(Command::RemoveRoute { domain, reply })
             .await
-            .map_err(|_| NexaError::Runtime("orchestrator stopped".into()))?;
+            .map_err(|_| HelyosError::Runtime("orchestrator stopped".into()))?;
         rx.await
-            .map_err(|_| NexaError::Runtime("orchestrator dropped reply".into()))?
+            .map_err(|_| HelyosError::Runtime("orchestrator dropped reply".into()))?
     }
 
     pub async fn list_routes(&self, project: Option<String>) -> Vec<Route> {
@@ -717,7 +717,7 @@ impl Orchestrator {
 
     async fn handle_create_project(&mut self, name: &str) -> Result<Project> {
         if self.projects.contains_key(name) {
-            return Err(NexaError::InvalidSpec(format!(
+            return Err(HelyosError::InvalidSpec(format!(
                 "project '{name}' already exists"
             )));
         }
@@ -739,7 +739,7 @@ impl Orchestrator {
         // Block deploys to suspended projects
         if let Some(project) = self.projects.get(&spec.project) {
             if project.is_suspended() {
-                return Err(NexaError::ProjectSuspended(spec.project.clone()));
+                return Err(HelyosError::ProjectSuspended(spec.project.clone()));
             }
         }
 
@@ -806,7 +806,7 @@ impl Orchestrator {
     async fn handle_stop(&mut self, project: &str, name: &str) -> Result<()> {
         let deployment_id = self
             .find_deployment_id(project, name)
-            .ok_or_else(|| NexaError::DeploymentNotFound(format!("{project}/{name}")))?;
+            .ok_or_else(|| HelyosError::DeploymentNotFound(format!("{project}/{name}")))?;
 
         let pod_ids: Vec<Uuid> = self.deployment_pod_ids(&deployment_id);
 
@@ -846,7 +846,7 @@ impl Orchestrator {
         self.handle_stop(project, name).await?;
         let id = self
             .find_deployment_id(project, name)
-            .ok_or_else(|| NexaError::DeploymentNotFound(format!("{project}/{name}")))?;
+            .ok_or_else(|| HelyosError::DeploymentNotFound(format!("{project}/{name}")))?;
         if let Some(store) = &self.state_store {
             let _ = store.delete_deployment(&id).await;
         }
@@ -868,7 +868,7 @@ impl Orchestrator {
     ) -> Result<Deployment> {
         let deployment_id = self
             .find_deployment_id(project, name)
-            .ok_or_else(|| NexaError::DeploymentNotFound(format!("{project}/{name}")))?;
+            .ok_or_else(|| HelyosError::DeploymentNotFound(format!("{project}/{name}")))?;
 
         if let Some(d) = self.deployments.get_mut(&deployment_id) {
             d.spec.replicas = replicas;
@@ -893,12 +893,12 @@ impl Orchestrator {
             .pods
             .values()
             .find(|p| p.project == project && p.deployment_name == name)
-            .ok_or_else(|| NexaError::PodNotFound(format!("{project}/{name}")))?;
+            .ok_or_else(|| HelyosError::PodNotFound(format!("{project}/{name}")))?;
 
         let container_id = pod
             .container_id
             .as_ref()
-            .ok_or_else(|| NexaError::Runtime("pod has no container".into()))?;
+            .ok_or_else(|| HelyosError::Runtime("pod has no container".into()))?;
 
         self.runtime.logs(container_id, tail).await
     }
@@ -907,7 +907,7 @@ impl Orchestrator {
         let spec = self.deployments[&deployment_id].spec.clone();
         let desired = spec.replicas;
 
-        let network_name = format!("nexa-{}", spec.project);
+        let network_name = format!("helyos-{}", spec.project);
         let _ = self.runtime.create_network(&network_name).await;
 
         let mut current_pods: Vec<(Uuid, DateTime<Utc>)> = self
@@ -989,10 +989,13 @@ impl Orchestrator {
             .collect();
 
         let mut labels = StdHashMap::new();
-        labels.insert("managed-by".to_string(), "nexanet".to_string());
-        labels.insert("nexa.project".to_string(), spec.project.clone());
-        labels.insert("nexa.deployment".to_string(), spec.deployment.name.clone());
-        labels.insert("nexa.pod-id".to_string(), pod_id.to_string());
+        labels.insert("managed-by".to_string(), "helyos".to_string());
+        labels.insert("helyos.project".to_string(), spec.project.clone());
+        labels.insert(
+            "helyos.deployment".to_string(),
+            spec.deployment.name.clone(),
+        );
+        labels.insert("helyos.pod-id".to_string(), pod_id.to_string());
 
         let (dns_servers, dns_search_domains) = match &self.master_ip {
             Some(ip) => (vec![ip.clone()], vec![format!("{}.internal", spec.project)]),
@@ -1033,13 +1036,13 @@ impl Orchestrator {
         let mut resolved = StdHashMap::new();
         for name in secret_names {
             let value = store.get(project, name).await?.ok_or_else(|| {
-                NexaError::Secret(format!(
+                HelyosError::Secret(format!(
                     "secret '{}' not found in project '{}'",
                     name, project
                 ))
             })?;
             let value_str = String::from_utf8(value).map_err(|_| {
-                NexaError::Secret(format!("secret '{}' contains invalid UTF-8", name))
+                HelyosError::Secret(format!("secret '{}' contains invalid UTF-8", name))
             })?;
             resolved.insert(name.clone(), value_str);
         }
@@ -1123,7 +1126,7 @@ impl Orchestrator {
         );
 
         let container_name = pod.container_name();
-        let network_name = format!("nexa-{}", spec.project);
+        let network_name = format!("helyos-{}", spec.project);
 
         pod.status = PodStatus::Creating;
 
@@ -1405,7 +1408,7 @@ impl Orchestrator {
 
         // Recreate container in-place (same pod, new container)
         let container_name = pod.container_name();
-        let network_name = format!("nexa-{}", spec.project);
+        let network_name = format!("helyos-{}", spec.project);
 
         // Resolve secrets and merge into env
         let mut final_env = spec.env.clone();
@@ -1513,7 +1516,7 @@ impl Orchestrator {
         let pod = self
             .pods
             .get(&pod_id)
-            .ok_or_else(|| NexaError::PodNotFound(pod_id.to_string()))?;
+            .ok_or_else(|| HelyosError::PodNotFound(pod_id.to_string()))?;
         let deployment_id = pod.deployment_id;
         let replica_index = pod.replica_index;
 
@@ -1532,7 +1535,7 @@ impl Orchestrator {
         let spec = self
             .deployments
             .get(&deployment_id)
-            .ok_or_else(|| NexaError::DeploymentNotFound(deployment_id.to_string()))?
+            .ok_or_else(|| HelyosError::DeploymentNotFound(deployment_id.to_string()))?
             .spec
             .clone();
 
@@ -1582,7 +1585,7 @@ impl Orchestrator {
         let project = self
             .projects
             .get_mut(name)
-            .ok_or_else(|| NexaError::ProjectNotFound(name.to_string()))?;
+            .ok_or_else(|| HelyosError::ProjectNotFound(name.to_string()))?;
         project.status = ProjectStatus::Suspended;
 
         // Stop all pods in all deployments of this project
@@ -1637,7 +1640,7 @@ impl Orchestrator {
         let project = self
             .projects
             .get_mut(name)
-            .ok_or_else(|| NexaError::ProjectNotFound(name.to_string()))?;
+            .ok_or_else(|| HelyosError::ProjectNotFound(name.to_string()))?;
         project.status = ProjectStatus::Active;
 
         // Persist project status update
@@ -1664,13 +1667,13 @@ impl Orchestrator {
 
     async fn handle_delete_project(&mut self, name: &str) -> Result<()> {
         if !self.projects.contains_key(name) {
-            return Err(NexaError::ProjectNotFound(name.to_string()));
+            return Err(HelyosError::ProjectNotFound(name.to_string()));
         }
 
         // Check if any deployments exist for this project
         let has_deployments = self.deployments.values().any(|d| d.project() == name);
         if has_deployments {
-            return Err(NexaError::ProjectNotEmpty(name.to_string()));
+            return Err(HelyosError::ProjectNotEmpty(name.to_string()));
         }
 
         self.projects.remove(name);
@@ -1695,14 +1698,14 @@ impl Orchestrator {
     async fn handle_set_secret(&self, project: &str, name: &str, value: &[u8]) -> Result<()> {
         match &self.secret_store {
             Some(store) => store.set(project, name, value).await,
-            None => Err(NexaError::Secret("no secret store configured".into())),
+            None => Err(HelyosError::Secret("no secret store configured".into())),
         }
     }
 
     async fn handle_delete_secret(&self, project: &str, name: &str) -> Result<()> {
         match &self.secret_store {
             Some(store) => store.delete(project, name).await,
-            None => Err(NexaError::Secret("no secret store configured".into())),
+            None => Err(HelyosError::Secret("no secret store configured".into())),
         }
     }
 
@@ -1732,10 +1735,10 @@ impl Orchestrator {
     ) -> Result<()> {
         let tls_mode: TlsMode = tls_mode_str
             .parse()
-            .map_err(|e: String| NexaError::InvalidSpec(format!("invalid TLS mode: {e}")))?;
+            .map_err(|e: String| HelyosError::InvalidSpec(format!("invalid TLS mode: {e}")))?;
 
         if tls_mode == TlsMode::Auto {
-            return Err(NexaError::InvalidSpec(
+            return Err(HelyosError::InvalidSpec(
                 "TLS mode 'auto' requires a non-empty ACME email, but none is configured".into(),
             ));
         }
@@ -1785,7 +1788,7 @@ impl Orchestrator {
         if let Some(store) = &self.route_store {
             let deleted = store.delete_route(domain).await?;
             if !deleted {
-                return Err(NexaError::RouteNotFound(domain.to_string()));
+                return Err(HelyosError::RouteNotFound(domain.to_string()));
             }
         }
 
@@ -1982,7 +1985,7 @@ mod tests {
                     image: "mock".into(),
                     state: state.clone(),
                 }),
-                None => Err(NexaError::Runtime(format!("container {id} not found"))),
+                None => Err(HelyosError::Runtime(format!("container {id} not found"))),
             }
         }
         async fn logs(&self, _: &str, _: Option<u64>) -> Result<LogStream> {

@@ -1,10 +1,10 @@
 [package]
-name = "nexa-core"
-description = "Core types, traits, and abstractions for NexaNet"
-version = "0.1.6"
+name = "helyos-core"
+description = "Core types, traits, and abstractions for Helyos"
+version = "0.1.7"
 edition = "2024"
 license = "Apache-2.0"
-repository = "https://github.com/nexa-net/nexa-core"
+repository = "https://github.com/helyos-labs/helyos-core"
 rust-version = "1.85"
 
 [dev-dependencies]
