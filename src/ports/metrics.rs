@@ -10,6 +10,13 @@ pub trait MetricsPort: Send + Sync {
     fn set_deployment_count(&self, count: usize);
     fn record_proxy_request(&self, domain: &str, status: u16, duration_secs: f64);
     fn record_proxy_error(&self, domain: &str, error_type: &str);
+    /// Record a failed persistence operation against the state store.
+    /// `op` identifies the operation, e.g. "insert_pod", "update_deployment".
+    ///
+    /// Defaulted to a no-op so existing out-of-tree implementations (e.g. the
+    /// Prometheus adapter in nexad, which pins nexa-core via a git tag) remain
+    /// source-compatible without modification.
+    fn record_persistence_error(&self, _op: &str) {}
     fn as_any(&self) -> &dyn Any;
 }
 
@@ -25,6 +32,7 @@ impl MetricsPort for NoOpMetrics {
     fn set_deployment_count(&self, _count: usize) {}
     fn record_proxy_request(&self, _domain: &str, _status: u16, _duration_secs: f64) {}
     fn record_proxy_error(&self, _domain: &str, _error_type: &str) {}
+    fn record_persistence_error(&self, _op: &str) {}
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -46,5 +54,6 @@ mod tests {
         m.set_deployment_count(5);
         m.record_proxy_request("api.example.com", 200, 0.05);
         m.record_proxy_error("api.example.com", "connection_refused");
+        m.record_persistence_error("insert_pod");
     }
 }
