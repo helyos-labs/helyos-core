@@ -1,10 +1,10 @@
-use std::collections::HashMap;
 use parking_lot::Mutex;
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 
-use crate::ports::secrets::SecretStore;
 use crate::error::Result;
+use crate::ports::secrets::SecretStore;
 
 pub struct PlaintextSecretStore {
     data: Mutex<HashMap<(String, String), Vec<u8>>>,
