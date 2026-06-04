@@ -39,35 +39,47 @@ fn validate_dns_name(value: &str, field: &str) -> Result<()> {
     Ok(())
 }
 
+impl DeploymentSpec {
+    /// Validate all invariants of a deployment configuration.
+    ///
+    /// Called on every load path — YAML parse ([`parse_deployment`]), the
+    /// orchestrator deploy choke point (`handle_deploy`), and any future
+    /// JSON/gRPC entry point — so a spec produced by any source is checked
+    /// before it reaches the container runtime.
+    pub fn validate(&self) -> Result<()> {
+        validate_dns_name(&self.project, "project")?;
+        validate_dns_name(&self.deployment.name, "deployment name")?;
+
+        if self.image.is_empty() {
+            return Err(NexaError::InvalidSpec("image is required".into()));
+        }
+        if self.replicas == 0 {
+            return Err(NexaError::InvalidSpec("replicas must be at least 1".into()));
+        }
+
+        for &port in &self.ports {
+            if port == 0 {
+                return Err(NexaError::InvalidSpec(
+                    "port must be between 1 and 65535, got 0".into(),
+                ));
+            }
+        }
+
+        if let Some(ref res) = self.resources {
+            validate_resource_memory(&res.memory)?;
+            if !res.cpu.is_finite() || res.cpu <= 0.0 {
+                return Err(NexaError::InvalidSpec(
+                    "resources.cpu must be greater than 0".into(),
+                ));
+            }
+        }
+
+        Ok(())
+    }
+}
+
 fn validate_spec(spec: &DeploymentSpec) -> Result<()> {
-    validate_dns_name(&spec.project, "project")?;
-    validate_dns_name(&spec.deployment.name, "deployment name")?;
-
-    if spec.image.is_empty() {
-        return Err(NexaError::InvalidSpec("image is required".into()));
-    }
-    if spec.replicas == 0 {
-        return Err(NexaError::InvalidSpec("replicas must be at least 1".into()));
-    }
-
-    for &port in &spec.ports {
-        if port == 0 {
-            return Err(NexaError::InvalidSpec(
-                "port must be between 1 and 65535, got 0".into(),
-            ));
-        }
-    }
-
-    if let Some(ref res) = spec.resources {
-        validate_resource_memory(&res.memory)?;
-        if res.cpu <= 0.0 {
-            return Err(NexaError::InvalidSpec(
-                "resources.cpu must be greater than 0".into(),
-            ));
-        }
-    }
-
-    Ok(())
+    spec.validate()
 }
 
 fn validate_resource_memory(memory: &str) -> Result<()> {
@@ -531,5 +543,39 @@ resources:
         let res = spec.resources.unwrap();
         assert_eq!(res.memory, "512m");
         assert!((res.cpu - 0.5).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn validate_method_accepts_valid_and_rejects_invalid() {
+        use crate::domain::models::{DeploymentMeta, RestartPolicy};
+        use std::collections::HashMap;
+
+        let mut spec = DeploymentSpec {
+            project: "myapp".into(),
+            deployment: DeploymentMeta { name: "api".into() },
+            replicas: 1,
+            image: "nginx:latest".into(),
+            ports: vec![8080],
+            env: HashMap::new(),
+            volumes: vec![],
+            secrets: vec![],
+            network: None,
+            healthcheck: None,
+            restart: RestartPolicy::default(),
+            resources: None,
+        };
+        assert!(spec.validate().is_ok());
+
+        // Each invariant, exercised through the public method (not just YAML parse).
+        spec.replicas = 0;
+        assert!(spec.validate().is_err());
+        spec.replicas = 1;
+
+        spec.image.clear();
+        assert!(spec.validate().is_err());
+        spec.image = "nginx".into();
+
+        spec.deployment.name = "Bad_Name".into();
+        assert!(spec.validate().is_err());
     }
 }

@@ -732,6 +732,10 @@ impl Orchestrator {
     }
 
     async fn handle_deploy(&mut self, spec: DeploymentSpec) -> Result<Deployment> {
+        // Reject invalid specs up front, regardless of entry path
+        // (HTTP JSON body, YAML, gRPC assign_pod, node-death reschedule).
+        spec.validate()?;
+
         // Block deploys to suspended projects
         if let Some(project) = self.projects.get(&spec.project) {
             if project.is_suspended() {
@@ -1802,6 +1806,9 @@ impl Orchestrator {
         if let Some(store) = &self.state_store {
             if let Err(e) = store.insert_project(project).await {
                 tracing::warn!(project = %project.name, error = %e, "failed to persist project");
+                if let Some(ref m) = self.metrics {
+                    m.record_persistence_error("insert_project");
+                }
             }
         }
     }
@@ -1810,6 +1817,9 @@ impl Orchestrator {
         if let Some(store) = &self.state_store {
             if let Err(e) = store.insert_deployment(deployment).await {
                 tracing::warn!(id = %deployment.id, error = %e, "failed to persist deployment insert");
+                if let Some(ref m) = self.metrics {
+                    m.record_persistence_error("insert_deployment");
+                }
             }
         }
     }
@@ -1818,6 +1828,9 @@ impl Orchestrator {
         if let Some(store) = &self.state_store {
             if let Err(e) = store.update_deployment(deployment).await {
                 tracing::warn!(id = %deployment.id, error = %e, "failed to persist deployment update");
+                if let Some(ref m) = self.metrics {
+                    m.record_persistence_error("update_deployment");
+                }
             }
         }
     }
@@ -1826,6 +1839,9 @@ impl Orchestrator {
         if let Some(store) = &self.state_store {
             if let Err(e) = store.insert_pod(pod).await {
                 tracing::warn!(id = %pod.id, error = %e, "failed to persist pod insert");
+                if let Some(ref m) = self.metrics {
+                    m.record_persistence_error("insert_pod");
+                }
             }
         }
     }
@@ -1834,6 +1850,9 @@ impl Orchestrator {
         if let Some(store) = &self.state_store {
             if let Err(e) = store.update_pod(pod).await {
                 tracing::warn!(id = %pod.id, error = %e, "failed to persist pod update");
+                if let Some(ref m) = self.metrics {
+                    m.record_persistence_error("update_pod");
+                }
             }
         }
     }
@@ -1842,6 +1861,9 @@ impl Orchestrator {
         if let Some(store) = &self.state_store {
             if let Err(e) = store.delete_pod(id).await {
                 tracing::warn!(pod_id = %id, error = %e, "failed to persist pod delete");
+                if let Some(ref m) = self.metrics {
+                    m.record_persistence_error("delete_pod");
+                }
             }
         }
     }
