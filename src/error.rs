@@ -48,7 +48,7 @@ pub enum NexaError {
     Serialization(#[from] serde_json::Error),
 
     #[error("yaml error: {0}")]
-    Yaml(#[from] serde_yml::Error),
+    Yaml(#[from] serde_yaml_ng::Error),
 
     #[error("scheduling failed: {0}")]
     SchedulingFailed(String),
