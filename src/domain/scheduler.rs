@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::error::{NexaError, Result};
+use crate::error::{HelyosError, Result};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SchedulerWeights {
@@ -128,7 +128,7 @@ impl WeightedScheduler {
 
     pub fn select_node(&self, request: &PodRequest, nodes: &[NodeSnapshot]) -> Result<Uuid> {
         if nodes.is_empty() {
-            return Err(NexaError::SchedulingFailed(
+            return Err(HelyosError::SchedulingFailed(
                 "no candidate nodes available".into(),
             ));
         }
@@ -146,7 +146,7 @@ impl WeightedScheduler {
 
         match best_id {
             Some(id) if best_score > f64::NEG_INFINITY => Ok(id),
-            _ => Err(NexaError::SchedulingFailed(
+            _ => Err(HelyosError::SchedulingFailed(
                 "no node has sufficient resources".into(),
             )),
         }
@@ -189,7 +189,7 @@ impl SchedulerConfig {
             "spread" => (SchedulerStrategy::Spread, SchedulerWeights::spread()),
             "binpack" => (SchedulerStrategy::Binpack, SchedulerWeights::binpack()),
             _ => {
-                return Err(NexaError::InvalidSpec(format!(
+                return Err(HelyosError::InvalidSpec(format!(
                     "unknown scheduler strategy: '{strategy}'. Valid: spread, binpack"
                 )));
             }
@@ -207,7 +207,7 @@ impl SchedulerConfig {
             "load" => self.weights.load = value,
             "failure" => self.weights.failure = value,
             _ => {
-                return Err(NexaError::InvalidSpec(format!(
+                return Err(HelyosError::InvalidSpec(format!(
                     "unknown weight: '{name}'. Valid: cpu, memory, load, failure"
                 )));
             }

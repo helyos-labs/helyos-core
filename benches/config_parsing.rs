@@ -1,5 +1,5 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use nexa_core::config::parse_deployment;
+use helyos_core::config::parse_deployment;
 
 const MINIMAL_SPEC: &str = r#"
 project: myapp

@@ -57,7 +57,7 @@ impl Pod {
 
     pub fn container_name(&self) -> String {
         format!(
-            "nexa-{}-{}-{}",
+            "helyos-{}-{}-{}",
             self.project, self.deployment_name, self.replica_index
         )
     }

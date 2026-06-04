@@ -1,41 +1,41 @@
 use std::time::Duration;
 
-use crate::error::{NexaError, Result};
+use crate::error::{HelyosError, Result};
 
 pub fn parse_duration(s: &str) -> Result<Duration> {
     if s.is_empty() {
-        return Err(NexaError::InvalidSpec("duration string is empty".into()));
+        return Err(HelyosError::InvalidSpec("duration string is empty".into()));
     }
 
     if let Some(ms) = s.strip_suffix("ms") {
         let n: u64 = ms
             .parse()
-            .map_err(|_| NexaError::InvalidSpec(format!("invalid duration: {s}")))?;
+            .map_err(|_| HelyosError::InvalidSpec(format!("invalid duration: {s}")))?;
         return Ok(Duration::from_millis(n));
     }
     if let Some(h) = s.strip_suffix('h') {
         let n: u64 = h
             .parse()
-            .map_err(|_| NexaError::InvalidSpec(format!("invalid duration: {s}")))?;
+            .map_err(|_| HelyosError::InvalidSpec(format!("invalid duration: {s}")))?;
         return Ok(Duration::from_secs(n * 3600));
     }
     if let Some(m) = s.strip_suffix('m') {
         let n: u64 = m
             .parse()
-            .map_err(|_| NexaError::InvalidSpec(format!("invalid duration: {s}")))?;
+            .map_err(|_| HelyosError::InvalidSpec(format!("invalid duration: {s}")))?;
         return Ok(Duration::from_secs(n * 60));
     }
     if let Some(sec) = s.strip_suffix('s') {
         let n: u64 = sec
             .parse()
-            .map_err(|_| NexaError::InvalidSpec(format!("invalid duration: {s}")))?;
+            .map_err(|_| HelyosError::InvalidSpec(format!("invalid duration: {s}")))?;
         return Ok(Duration::from_secs(n));
     }
 
     // Bare number → seconds
     match s.parse::<u64>() {
         Ok(n) => Ok(Duration::from_secs(n)),
-        Err(_) => Err(NexaError::InvalidSpec(format!("invalid duration: {s}"))),
+        Err(_) => Err(HelyosError::InvalidSpec(format!("invalid duration: {s}"))),
     }
 }
 

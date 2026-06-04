@@ -3,21 +3,21 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/white_logo.png" width="200">
   <source media="(prefers-color-scheme: light)" srcset="assets/black_logo.png" width="200">
-  <img alt="NexaNet" src="assets/black_logo.png" width="200">
+  <img alt="Helyos" src="assets/black_logo.png" width="200">
 </picture>
 
-# nexa-core
+# helyos-core
 
-**Core domain types, traits, and orchestrator for NexaNet**
+**Core domain types, traits, and orchestrator for Helyos**
 
-[![CI](https://github.com/nexa-net/nexa-core/actions/workflows/ci.yml/badge.svg)](https://github.com/nexa-net/nexa-core/actions/workflows/ci.yml)
+[![CI](https://github.com/helyos-labs/helyos-core/actions/workflows/ci.yml/badge.svg)](https://github.com/helyos-labs/helyos-core/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org)
 
-nexa-core defines the shared domain model, port traits, and actor-based orchestrator
-that power the NexaNet container platform. It is a library crate with no binary --
-consumed by [nexad](https://github.com/nexa-net/nexad) (the daemon) and
-[nexa-cli](https://github.com/nexa-net/nexa-cli) (the CLI).
+helyos-core defines the shared domain model, port traits, and actor-based orchestrator
+that power the Helyos container platform. It is a library crate with no binary --
+consumed by [helyosd](https://github.com/helyos-labs/helyosd) (the daemon) and
+[helyos-cli](https://github.com/helyos-labs/helyos-cli) (the CLI).
 
 </div>
 
@@ -37,11 +37,11 @@ consumed by [nexad](https://github.com/nexa-net/nexad) (the daemon) and
 ## Architecture
 
 ```
-nexa-core/
+helyos-core/
   src/
     config.rs            -- YAML spec parser and validator
     duration.rs          -- Human-friendly duration parsing (e.g. "10s", "5m")
-    error.rs             -- NexaError type and Result alias
+    error.rs             -- HelyosError type and Result alias
     domain/
       models/
         project.rs       -- Project with Active/Suspended status
@@ -67,7 +67,7 @@ nexa-core/
 The crate follows **hexagonal architecture** (ports and adapters). All external
 concerns are expressed as traits in `src/ports/`. The orchestrator and domain logic
 depend only on these traits, never on concrete implementations. Adapters live in
-[nexad](https://github.com/nexa-net/nexad).
+[helyosd](https://github.com/helyos-labs/helyosd).
 
 ## Usage
 
@@ -75,7 +75,7 @@ depend only on these traits, never on concrete implementations. Adapters live in
 
 ```toml
 [dependencies]
-nexa-core = { git = "https://github.com/nexa-net/nexa-core" }
+helyos-core = { git = "https://github.com/helyos-labs/helyos-core" }
 ```
 
 ### Deployment spec (YAML)
@@ -112,7 +112,7 @@ restart: always
 
 ```rust
 use std::path::Path;
-use nexa_core::config::parse_deployment_file;
+use helyos_core::config::parse_deployment_file;
 
 let spec = parse_deployment_file(Path::new("deploy.yaml"))?;
 println!("Deploying {} to project {}", spec.deployment.name, spec.project);
@@ -121,7 +121,7 @@ println!("Deploying {} to project {}", spec.deployment.name, spec.project);
 ### Spawning the orchestrator
 
 ```rust
-use nexa_core::domain::orchestrator::Orchestrator;
+use helyos_core::domain::orchestrator::Orchestrator;
 
 let handle = Orchestrator::spawn(
     runtime,        // Arc<dyn ContainerRuntime>
@@ -187,9 +187,9 @@ cargo test -- --nocapture
 
 | Repository | Description |
 |---|---|
-| [nexad](https://github.com/nexa-net/nexad) | Daemon -- concrete adapters, REST API, clustering |
-| [nexa-cli](https://github.com/nexa-net/nexa-cli) | CLI tool for deploying and managing containers |
-| [nexa-proxy](https://github.com/nexa-net/nexa-proxy) | Lightweight reverse proxy with weighted load balancing |
+| [helyosd](https://github.com/helyos-labs/helyosd) | Daemon -- concrete adapters, REST API, clustering |
+| [helyos-cli](https://github.com/helyos-labs/helyos-cli) | CLI tool for deploying and managing containers |
+| [helyos-proxy](https://github.com/helyos-labs/helyos-proxy) | Lightweight reverse proxy with weighted load balancing |
 
 ## License
 

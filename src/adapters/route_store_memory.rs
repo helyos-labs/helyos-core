@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use chrono::{Duration, Utc};
 
 use crate::domain::models::{Certificate, Route, SubnetAllocation};
-use crate::error::{NexaError, Result};
+use crate::error::{HelyosError, Result};
 use crate::ports::route_store::RouteStore;
 
 pub struct InMemoryRouteStore {
@@ -29,7 +29,7 @@ impl RouteStore for InMemoryRouteStore {
     async fn insert_route(&self, route: &Route) -> Result<()> {
         let mut routes = self.routes.write();
         if routes.contains_key(&route.domain) {
-            return Err(NexaError::RouteAlreadyExists(route.domain.clone()));
+            return Err(HelyosError::RouteAlreadyExists(route.domain.clone()));
         }
         routes.insert(route.domain.clone(), route.clone());
         Ok(())
@@ -86,13 +86,13 @@ impl RouteStore for InMemoryRouteStore {
             .iter()
             .any(|s| s.node_id == alloc.node_id && s.project == alloc.project)
         {
-            return Err(NexaError::Network(format!(
+            return Err(HelyosError::Network(format!(
                 "subnet already allocated for node {} project {}",
                 alloc.node_id, alloc.project
             )));
         }
         if subnets.iter().any(|s| s.subnet == alloc.subnet) {
-            return Err(NexaError::Network(format!(
+            return Err(HelyosError::Network(format!(
                 "subnet {} already in use",
                 alloc.subnet
             )));
