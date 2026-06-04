@@ -1,10 +1,6 @@
 <div align="center">
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/white_logo.png" width="200">
-  <source media="(prefers-color-scheme: light)" srcset="assets/black_logo.png" width="200">
-  <img alt="Helyos" src="assets/black_logo.png" width="200">
-</picture>
+<img alt="Helyos" src="assets/helyos-logo.png" width="200">
 
 # helyos-core
 
