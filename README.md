@@ -11,8 +11,9 @@
 [![Rust](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org)
 
 helyos-core defines the shared domain model, port traits, and actor-based orchestrator
-that power the Helyos container platform. It is a library crate with no binary --
-consumed by [helyosd](https://github.com/helyos-labs/helyosd) (the daemon) and
+that power the Helyos container platform &mdash; *80% of Kubernetes use-cases with 20% of
+the complexity*. It is a library crate with no binary, consumed by
+[helyosd](https://github.com/helyos-labs/helyosd) (the daemon) and
 [helyos-cli](https://github.com/helyos-labs/helyos-cli) (the CLI).
 
 </div>
@@ -21,49 +22,56 @@ consumed by [helyosd](https://github.com/helyos-labs/helyosd) (the daemon) and
 
 ## Features
 
-- **Domain models** -- Project, Deployment, Pod, Node, Route, Certificate, SubnetAllocation with full serde support
-- **Actor-model orchestrator** -- async command loop over `mpsc`/`oneshot` channels with 30+ command variants (deploy, scale, stop, secrets, routes, health, scheduling)
-- **Port traits (hexagonal architecture)** -- `ContainerRuntime` (14 methods), `StateStore`, `SecretStore`, `ClusterTransport`, `DnsProvider`, `RouteStore`, `ProxyBackend`
-- **YAML deployment specs** -- declarative config with DNS-name validation, resource limits, health probes, restart policies, volumes, secrets, and network config
-- **Weighted scheduler** -- spread and bin-pack strategies with configurable CPU/memory/load/failure weights
-- **Health tracking** -- probe-based health state machine with configurable intervals, timeouts, and retry thresholds
-- **Restart policies** -- `always`, `on_failure`, and `never` with exponential backoff and crash-loop detection
-- **177 unit tests**
+- **Domain models** &mdash; Project, Deployment, Pod, Node, Route, Certificate, SubnetAllocation with full serde support
+- **Actor-model orchestrator** &mdash; async command loop over `mpsc`/`oneshot` channels with 24 command variants (deploy, scale, stop, projects, secrets, routes, health, scheduling)
+- **Port traits (hexagonal architecture)** &mdash; `ContainerRuntime` (14 methods), `StateStore`, `SecretStore`, `ClusterTransport`, `DnsProvider`, `RouteStore`, `ProxyBackend`, `MetricsPort`
+- **YAML deployment specs** &mdash; declarative config with DNS-name validation, resource limits, health probes, restart policies, volumes, secrets, and network config
+- **Weighted scheduler** &mdash; spread and bin-pack strategies with configurable CPU/memory/load/failure weights
+- **Health tracking** &mdash; probe-based health state machine with configurable intervals, timeouts, and retry thresholds
+- **Restart policies** &mdash; `always`, `onfailure`, and `never` with exponential backoff and crash-loop detection
+- **180 unit tests**
 
 ## Architecture
 
 ```
 helyos-core/
   src/
-    config.rs            -- YAML spec parser and validator
-    duration.rs          -- Human-friendly duration parsing (e.g. "10s", "5m")
-    error.rs             -- HelyosError type and Result alias
+    config.rs              -- YAML spec parser and validator
+    duration.rs            -- Human-friendly duration parsing (e.g. "10s", "5m")
+    error.rs               -- HelyosError type and Result alias
     domain/
       models/
-        project.rs       -- Project with Active/Suspended status
-        deployment.rs    -- DeploymentSpec, volumes, health checks, resources
-        pod.rs           -- Pod lifecycle: Pending -> Running -> Stopped/Failed
-        node.rs          -- Node with role (Master/Worker), resources, heartbeat
-        route.rs         -- Route, Certificate, TlsMode, SubnetAllocation
-      orchestrator.rs    -- Actor loop: Command enum + OrchestratorHandle
-      scheduler.rs       -- WeightedScheduler with spread/binpack strategies
-      health.rs          -- HealthTracker state machine
-      restart.rs         -- RestartState with exponential backoff
+        project.rs         -- Project with Active/Suspended status
+        deployment.rs      -- DeploymentSpec, volumes, health checks, resources
+        pod.rs             -- Pod lifecycle: Pending -> Running -> Stopped/Failed
+        node.rs            -- Node with role (Master/Worker), resources, heartbeat
+        route.rs           -- Route, Certificate, TlsMode, SubnetAllocation
+      orchestrator.rs      -- Actor loop: Command enum + OrchestratorHandle
+      scheduler.rs         -- WeightedScheduler with spread/binpack strategies
+      health.rs            -- HealthTracker state machine
+      restart.rs           -- RestartState with exponential backoff
     ports/
-      runtime.rs         -- ContainerRuntime trait (14 async methods)
-      state.rs           -- StateStore trait (projects, deployments, pods, nodes)
-      secrets.rs         -- SecretStore trait (set/get/list/delete)
-      cluster.rs         -- ClusterTransport trait (register, heartbeat, assign)
-      dns.rs             -- DnsProvider trait (register/deregister/lookup)
-      proxy.rs           -- ProxyBackend trait (apply_routes, reload, health)
-      route_store.rs     -- RouteStore trait
-      *_memory.rs        -- In-memory test implementations
+      runtime.rs           -- ContainerRuntime trait (14 async methods)
+      state.rs             -- StateStore trait (projects, deployments, pods, nodes)
+      secrets.rs           -- SecretStore trait (set/get/list/delete)
+      cluster.rs           -- ClusterTransport trait (register, heartbeat, assign)
+      dns.rs               -- DnsProvider trait (register/deregister/lookup)
+      proxy.rs             -- ProxyBackend trait (apply_routes, reload, health)
+      route_store.rs       -- RouteStore trait (routes, certificates, subnets)
+      metrics.rs           -- MetricsPort trait + NoOpMetrics
+    adapters/
+      state_memory.rs      -- In-memory StateStore (tests/dev)
+      secrets_memory.rs    -- In-memory SecretStore (tests/dev)
+      route_store_memory.rs-- In-memory RouteStore (tests/dev)
 ```
 
 The crate follows **hexagonal architecture** (ports and adapters). All external
 concerns are expressed as traits in `src/ports/`. The orchestrator and domain logic
-depend only on these traits, never on concrete implementations. Adapters live in
-[helyosd](https://github.com/helyos-labs/helyosd).
+depend only on these traits, never on concrete implementations. Production adapters
+(Docker/containerd runtimes, SQLite state and encrypted-secret stores, nginx/Caddy/Traefik
+proxy backends, embedded DNS, and gRPC cluster transport) live in
+[helyosd](https://github.com/helyos-labs/helyosd); in-memory adapters for testing ship
+here in `src/adapters/`.
 
 ## Usage
 
@@ -120,14 +128,15 @@ println!("Deploying {} to project {}", spec.deployment.name, spec.project);
 use helyos_core::domain::orchestrator::Orchestrator;
 
 let handle = Orchestrator::spawn(
-    runtime,        // Arc<dyn ContainerRuntime>
-    Some(store),    // Arc<dyn StateStore>
-    Some(secrets),  // Arc<dyn SecretStore>
-    Some(transport),// Arc<dyn ClusterTransport>
-    dns,            // Option<Arc<dyn DnsProvider>>
-    master_ip,      // Option<String>
-    proxy,          // Option<Arc<dyn ProxyBackend>>
-    route_store,    // Option<Arc<dyn RouteStore>>
+    runtime,         // Arc<dyn ContainerRuntime>
+    Some(store),     // Option<Arc<dyn StateStore>>
+    Some(secrets),   // Option<Arc<dyn SecretStore>>
+    Some(transport), // Option<Arc<dyn ClusterTransport>>
+    dns,             // Option<Arc<dyn DnsProvider>>
+    master_ip,       // Option<String>
+    proxy,           // Option<Arc<dyn ProxyBackend>>
+    route_store,     // Option<Arc<dyn RouteStore>>
+    metrics,         // Option<Arc<dyn MetricsPort>>
 );
 
 // All interaction goes through the handle (thread-safe, cloneable)
@@ -162,7 +171,7 @@ pub trait StateStore: Send + Sync {
     async fn list_projects(&self) -> Result<Vec<Project>>;
     async fn insert_deployment(&self, deployment: &Deployment) -> Result<()>;
     async fn list_deployments(&self, project: Option<&str>) -> Result<Vec<Deployment>>;
-    // ... 20+ methods for projects, deployments, pods, nodes, cluster config
+    // ... projects, deployments, pods, nodes, and cluster config (23 methods)
 }
 ```
 
@@ -172,20 +181,23 @@ pub trait StateStore: Send + Sync {
 # Build
 cargo build
 
-# Run all 177 tests
+# Run all 180 tests
 cargo test
 
 # Run tests with output
 cargo test -- --nocapture
+
+# Benchmarks (scheduler, config parsing)
+cargo bench
 ```
 
 ## Related Repositories
 
 | Repository | Description |
 |---|---|
-| [helyosd](https://github.com/helyos-labs/helyosd) | Daemon -- concrete adapters, REST API, clustering |
-| [helyos-cli](https://github.com/helyos-labs/helyos-cli) | CLI tool for deploying and managing containers |
-| [helyos-proxy](https://github.com/helyos-labs/helyos-proxy) | Lightweight reverse proxy with weighted load balancing |
+| [helyos](https://github.com/helyos-labs/helyos) | Project overview, docs, and roadmap |
+| [helyosd](https://github.com/helyos-labs/helyosd) | Daemon -- concrete adapters, REST API, clustering, TLS, tokens |
+| [helyos-cli](https://github.com/helyos-labs/helyos-cli) | kubectl-style CLI for deploying and managing containers |
 
 ## License
 
