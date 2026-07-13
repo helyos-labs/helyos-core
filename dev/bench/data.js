@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783333264259,
+  "lastUpdate": 1783934778754,
   "repoUrl": "https://github.com/helyos-labs/helyos-core",
   "entries": {
     "Benchmark": [
@@ -769,6 +769,64 @@ window.BENCHMARK_DATA = {
             "name": "scheduler_binpack/20",
             "value": 1228,
             "range": "± 11",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "NA2SIME",
+            "username": "na2sime",
+            "email": "54268491+na2sime@users.noreply.github.com"
+          },
+          "committer": {
+            "name": "GitHub",
+            "username": "web-flow",
+            "email": "noreply@github.com"
+          },
+          "id": "a6f3db1702ac28a90cde47c3f039841e53d2f609",
+          "message": "fix: ACME-TLS routes, reboot reconcile, proxy IP tracking, network-block routes (#7)\n\n- `route add --https` / `network.https` are no longer rejected when the daemon has\n  an ACME email (the configured `--acme-email` is now threaded into the orchestrator)\n- reconcile_stale_pods recreates pods per restart policy after a reboot instead of\n  leaving them Failed (the dead container is removed first)\n- new reapply_routes regenerates the full proxy config from the route store + live pods\n  on every route change and after each reconcile, so upstream IPs stay correct\n- handle_deploy creates the route from the spec's network.public/domain/https block\n- public deployments are no longer host-published (they are reached via the proxy)\n\nBumps to 0.1.8. Adds reconcile regression tests.",
+          "timestamp": "2026-06-08T10:00:42Z",
+          "url": "https://github.com/helyos-labs/helyos-core/commit/a6f3db1702ac28a90cde47c3f039841e53d2f609"
+        },
+        "date": 1783934777913,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "parse_minimal_spec",
+            "value": 3628,
+            "range": "± 20",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse_full_spec",
+            "value": 23855,
+            "range": "± 376",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_spread/5",
+            "value": 310,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_spread/20",
+            "value": 1220,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_binpack/5",
+            "value": 312,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "scheduler_binpack/20",
+            "value": 1228,
+            "range": "± 2",
             "unit": "ns/iter"
           }
         ]
